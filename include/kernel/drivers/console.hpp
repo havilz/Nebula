@@ -4,11 +4,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-extern "C" {
-    void vga_clear(uint8_t bg);
-    void vga_write_at(size_t x, size_t y, const char* str, uint8_t fg, uint8_t bg);
-}
-
 namespace nebula {
 namespace drivers {
 
@@ -31,13 +26,28 @@ enum VGAColor : uint8_t {
     COLOR_WHITE = 15,
 };
 
+/**
+ * @brief VGA 80x25 Text Mode Console Driver
+ */
 class VGAConsole {
 public:
-    void clear(VGAColor bg = COLOR_BLUE);
-    void write_at(size_t x, size_t y, const char* str, VGAColor fg, VGAColor bg);
+    /**
+     * @brief Clear full screen with specified background color
+     */
+    static void clear(VGAColor bg = COLOR_BLUE);
+
+    /**
+     * @brief Write text string at specific (x, y) coordinates
+     */
+    static void write_at(size_t x, size_t y, const char* str, VGAColor fg, VGAColor bg = COLOR_BLUE);
 };
 
 } // namespace drivers
 } // namespace nebula
 
-#endif
+extern "C" {
+    void vga_clear(uint8_t bg);
+    void vga_write_at(size_t x, size_t y, const char* str, uint8_t fg, uint8_t bg);
+}
+
+#endif // NEBULA_CONSOLE_HPP

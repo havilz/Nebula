@@ -70,6 +70,6 @@ qemu-debug: debug
 	$(QEMU) -kernel $(DEBUG_DIR)/nebula.elf -s -S -serial stdio
 
 clean:
-	rm -rf $(BUILD_DIR) $(DEBUG_DIR) kernel_debug.log
+	rm -rf $(BUILD_DIR) $(DEBUG_DIR) kernel_debug.log *.o ./-p
 
 .PHONY: all run debug qemu-debug clean
