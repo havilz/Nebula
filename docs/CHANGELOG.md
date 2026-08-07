@@ -4,6 +4,88 @@ Dokumen ini mencatat seluruh riwayat perubahan, keputusan arsitektur teknis, dia
 
 ---
 
+## [Task 3] - Physical Memory Manager (PMM), Virtual Memory (VMM Paging), & Kernel Heap Allocator
+
+### Ringkasan Tujuan
+Membangun subsistem manajemen memori lengkap: Physical Memory Manager (PMM Bitmap 4 KiB frame), Virtual Memory Manager (VMM Identity Paging 16 MB), Kernel Heap Allocator (`kmalloc`/`kfree`), serta overloading operator global C++ `new` dan `delete`.
+
+---
+
+### Perubahan & Komponen Utama yang Dibuat
+
+#### 1. Multiboot Header & Information (`include/kernel/multiboot.h`)
+- **Struktur Memori**: Struct `multiboot_info_t` & `multiboot_memory_map_t` untuk membaca informasi RAM fisik dari Multiboot 1 bootloader (`EBX`).
+
+#### 2. Physical Memory Manager (`include/kernel/memory/pmm.hpp` & `kernel/memory/pmm.cpp`)
+- **Bitmap Allocator**: Pelacakan status frame fisik 4 KiB per bit (`bitmap_set`, `bitmap_clear`, `bitmap_test`).
+- **Parsing Multiboot Mmap**: Membaca region memori fisik yang tersedia (`type == 1`) dan menandai 1 MB dasar kernel sebagai *reserved*.
+- **API Utama**: `PMM::init()`, `PMM::allocate_frame()`, `PMM::free_frame()`, `PMM::get_free_memory_kb()`.
+
+#### 3. Virtual Memory Manager & Paging (`include/kernel/memory/vmm.hpp` & `kernel/memory/vmm.cpp`)
+- **Tabel Paging 32-bit**: Struct `page_directory_t` & `page_table_t` (1024 PDE & 1024 PTE).
+- **Identity Mapping 16 MB**: Memetakan alamat virtual `0x00000000` - `0x01000000` ke alamat fisik (termasuk VGA Buffer `0xB8000`).
+- **Pengaktifan Paging**: Memuat `CR3` via `switch_page_directory()` dan mengeset Bit 31 (`PG`) pada register `CR0`.
+- **Manajemen Halaman**: `VMM::map_page()` & `VMM::unmap_page()` dengan pembersihan TLB via `invlpg`.
+
+#### 4. Kernel Heap Allocator (`include/kernel/memory/heap.hpp` & `kernel/memory/heap.cpp`)
+- **Algoritma Heap**: First-Fit memory block allocation dengan *coalescing* (penggabungan blok bebas berdampingan saat `kfree`).
+- **Alokasi Dinamis**: `KernelHeap::init(0x00C00000, 1MB)`, `kmalloc(size)`, dan `kfree(ptr)`.
+
+#### 5. C++ Global Operator `new` / `delete` (`kernel/memory/kheap.cpp`)
+- Overloading operator global C++: `operator new`, `operator new[]`, `operator delete`, `operator delete[]` memanggil `kmalloc()` dan `kfree()`.
+
+#### 6. Integrasi Kernel Main (`kernel/core/kernel.cpp`) & Boot Assembly (`boot/x86_64/boot.asm`)
+- **`boot.asm`**: Mendorong `ebx` (multiboot info pointer) dan `eax` (magic number) sebagai argumen `kernel_main`.
+- **`kernel.cpp`**: Mengurutkan panggilan inisialisasi PMM -> VMM Paging -> Kernel Heap -> Pengujian `kmalloc(512)` -> Pengujian C++ `new TestMemoryObject()`.
+
+---
+
+### Catatan Diagnostik & Pemecahan Masalah Teknis
+
+1. **Bug Penempatan Atribut C++11 `alignas` pada Static Variables**:
+   - *Penyebab*: `static alignas(4096) page_directory_t initial_page_directory;` memicu syntax error pada GCC.
+   - *Solusi*: Mengubah posisi penulisan specifier menjadi `alignas(4096) static page_directory_t initial_page_directory;`.
+
+---
+
+### Hasil Akhir Eksekusi (Verification Status)
+
+- **Mode GUI (`mingw32-make run`)**: Jendela QEMU menampilkan spanduk konsol Phase 3:
+  ```text
+  [OK] PMM Bitmap Frame Allocator Initialized
+  [OK] VMM Identity Paging (16 MB) & CR0.PG Active
+  [OK] Kernel Heap Allocator (0x00C00000 / 1 MB)
+  [OK] kmalloc(512) Dynamic Allocation Success
+  [OK] C++ Global operator new & delete Success
+  Phase 3 Initialization Complete!
+  ```
+- **Mode Serial Terminal**: Port COM1 memancarkan log real-time:
+  ```text
+  [PMM] Initializing Physical Memory Manager (Bitmap Allocator)...
+  [PMM] PMM Initialized Successfully!
+  [VMM] Initializing Virtual Memory Manager & Identity Paging (0-16MB)...
+  [VMM] CPU Paging Enabled Safely (CR3 & CR0.PG Active)!
+  [HEAP] Initializing Kernel Heap Allocator at 0x00C00000 (1 MB pool)...
+  [HEAP] Kernel Heap Initialized Successfully!
+  [TEST] Testing kmalloc(512)...
+  [TEST] kmalloc(512) Allocation Successful!
+  [TEST] kfree(ptr1) Freed Successfully!
+  [TEST] Testing C++ Global Operator new...
+  [TEST] C++ Operator new TestMemoryObject Success!
+  [TEST] delete obj Freed Successfully!
+  [KERNEL] Phase 3 initialization complete! Entering infinite loop...
+  ```
+
+---
+
+### Status Pengembangan Saat Ini:
+- **Phase 1 (Multiboot 1 Kernel & VGA Driver)**: SELESAI (100%)
+- **Phase 2 (GDT, IDT, PIC & ISR Handling)**: SELESAI (100%)
+- **Phase 3 (Manajemen Memori - PMM, VMM Paging, & Heap)**: SELESAI (100%)
+- **Phase 4 (Driver Hardware Input & Timer - PIT, PS/2, Serial)**: Siap Dilanjutkan
+
+---
+
 ## [Task 2] - GDT, IDT, 8259 PIC Remapping, & ISR Interrupt Handling
 
 ### Ringkasan Tujuan
@@ -87,13 +169,6 @@ Membangun fondasi manajemen segmen memori (GDT) dan subsistem penanganan interup
   [ISR] INT 3 Breakpoint Exception Handler Intercepted Successfully!
   [KERNEL] Phase 2 initialization complete! Entering infinite loop...
   ```
-
----
-
-### Status Pengembangan Saat Ini:
-- **Phase 1 (Multiboot 1 Kernel & VGA Driver)**: SELESAI (100%)
-- **Phase 2 (GDT, IDT, PIC & ISR Handling)**: SELESAI (100%)
-- **Phase 3 (Manajemen Memori - PMM & VMM)**: Siap Dilanjutkan
 
 ---
 

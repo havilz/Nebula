@@ -10,7 +10,7 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 [X] Fase 0: Setup Lingkungan & Arsitektur Project (Selesai 100%)
 [X] Fase 1: Bootloader & Bare-Metal Kernel Execution (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 2: GDT, IDT, & Interupsi CPU (ISR & PIC) (Selesai 100% - Terverifikasi di QEMU)
-[ ] Fase 3: Manajemen Memori (PMM Bitmap, VMM Paging, Heap)
+[X] Fase 3: Manajemen Memori (PMM Bitmap, VMM Paging, Heap) (Selesai 100% - Terverifikasi di QEMU)
 [ ] Fase 4: Driver Hardware Input & Timer (PIT, PS/2 Keyboard, Serial COM1)
 [ ] Fase 5: Multitasking & Scheduler (PCB, TCB, Context Switching)
 [ ] Fase 6: Virtual File System (VFS) & System Call (Ring 3 Userland)
@@ -45,10 +45,10 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 - [x] Remapping 8259 PIC (IRQ 0-15 ke Vector IDT 32-47) (`include/kernel/arch/x86_64/pic.hpp`, `kernel/arch/x86_64/interrupts/pic.cpp`).
 
 ### Fase 3: Manajemen Memori
-- [ ] Physical Memory Manager (PMM) berbasis Bitmap (`include/kernel/memory/pmm.hpp`, `kernel/memory/pmm.cpp`).
-- [ ] Virtual Memory Manager (VMM) Pemetaan Page Table PML4 (`include/kernel/memory/vmm.hpp`, `kernel/memory/vmm.cpp`).
-- [ ] Kernel Heap Allocator (`kmalloc`/`kfree`) (`include/kernel/memory/heap.hpp`, `kernel/memory/heap.cpp`).
-- [ ] Overloading Operator Global C++ `new` dan `delete` (`kernel/memory/kheap.cpp`).
+- [x] Physical Memory Manager (PMM) berbasis Bitmap (`include/kernel/memory/pmm.hpp`, `kernel/memory/pmm.cpp`).
+- [x] Virtual Memory Manager (VMM) Pemetaan Page Table (`include/kernel/memory/vmm.hpp`, `kernel/memory/vmm.cpp`).
+- [x] Kernel Heap Allocator (`kmalloc`/`kfree`) (`include/kernel/memory/heap.hpp`, `kernel/memory/heap.cpp`).
+- [x] Overloading Operator Global C++ `new` dan `delete` (`kernel/memory/kheap.cpp`).
 
 ### Fase 4: Driver Hardware Input & Timer
 - [ ] Driver PIT Timer (100 Hz Tick Interrupt IRQ 0).

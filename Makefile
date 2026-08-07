@@ -1,4 +1,4 @@
-# Makefile untuk Nebula OS - Phase 2 (GDT, IDT, PIC & Interrupt Handling)
+# Makefile untuk Nebula OS - Phase 3 (Physical & Virtual Memory Management)
 # Dikompilasi menggunakan MSYS2 UCRT64 toolchain & LLD Linker di Windows
 
 CC      = g++
@@ -20,7 +20,7 @@ ASMFLAGS = -f elf32
 
 # --- Debug build ---
 DEBUG_DIR    = build_debug
-CFLAGS_DEBUG = -m32 -ffreestanding -O0 -g -Wall -Wextra -fno-exceptions -fno-rtti \
+CFLAGS_DEBUG = -m32 -ffreestanding -O1 -g -Wall -Wextra -fno-exceptions -fno-rtti \
                -fno-leading-underscore -fno-asynchronous-unwind-tables -fno-unwind-tables \
                -fno-builtin -fno-tree-loop-distribute-patterns \
                -mno-sse -mno-sse2 -mno-mmx -mno-80387 -Iinclude

@@ -47,6 +47,30 @@ void Serial::write_string(const char* str) {
     }
 }
 
+void Serial::write_hex32(uint32_t val) {
+    static const char hex_chars[] = "0123456789ABCDEF";
+    write_string("0x");
+    for (int i = 28; i >= 0; i -= 4) {
+        write_char(hex_chars[(val >> i) & 0xF]);
+    }
+}
+
+void Serial::write_dec(size_t val) {
+    if (val == 0) {
+        write_char('0');
+        return;
+    }
+    char buf[32];
+    int i = 0;
+    while (val > 0) {
+        buf[i++] = '0' + (val % 10);
+        val /= 10;
+    }
+    while (i > 0) {
+        write_char(buf[--i]);
+    }
+}
+
 } // namespace drivers
 } // namespace nebula
 

@@ -3,85 +3,61 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "../multiboot.h"
 
 namespace nebula {
 namespace memory {
 
-static const size_t PAGE_SIZE = 4096;
-static const size_t PAGE_SHIFT = 12;
+static const size_t PAGE_SIZE = 4096; // 4 KiB Physical Frame Size
 
 /**
- * @brief Physical Memory Manager (PMM) Class using Bitmap Frame Allocator
+ * @brief Physical Memory Manager (PMM) Bitmap Allocator
  */
 class PMM {
 private:
     static uint32_t* m_bitmap;
-    static size_t m_max_blocks;
-    static size_t m_used_blocks;
-    static size_t m_bitmap_size;
+    static size_t m_max_frames;
+    static size_t m_used_frames;
+    static uintptr_t m_memory_size;
 
-    static inline void set_bit(size_t bit) {
-        m_bitmap[bit / 32] |= (1 << (bit % 32));
-    }
-
-    static inline void clear_bit(size_t bit) {
-        m_bitmap[bit / 32] &= ~(1 << (bit % 32));
-    }
-
-    static inline bool test_bit(size_t bit) {
-        return (m_bitmap[bit / 32] & (1 << (bit % 32))) != 0;
-    }
-
-    static int first_free_block();
-    static int first_free_blocks(size_t count);
+    static void bitmap_set(size_t bit);
+    static void bitmap_clear(size_t bit);
+    static bool bitmap_test(size_t bit);
+    static int32_t find_first_free_frame();
 
 public:
     /**
-     * @brief Initialize Physical Memory Manager with bitmap location and memory size
-     * @param bitmap_addr Pointer to bitmap array memory location
-     * @param mem_size Total physical memory size in bytes
+     * @brief Initialize Physical Memory Manager from Multiboot Memory Map
+     * @param mb_info Pointer to Multiboot information structure passed by bootloader
      */
-    static void init(uintptr_t bitmap_addr, size_t mem_size);
+    static void init(multiboot_info_t* mb_info);
 
     /**
-     * @brief Mark a physical memory region as free
-     */
-    static void init_region(uintptr_t base, size_t size);
-
-    /**
-     * @brief Mark a physical memory region as reserved/used
-     */
-    static void reserve_region(uintptr_t base, size_t size);
-
-    /**
-     * @brief Allocate a single 4KB physical memory page frame
+     * @brief Allocate a single 4 KiB physical memory frame
      * @return Physical base address of allocated frame, or 0 if out of memory
      */
-    static uintptr_t alloc_block();
+    static uintptr_t allocate_frame();
 
     /**
-     * @brief Free a single 4KB physical memory page frame
-     * @param phys_addr Physical address of page frame to free
+     * @brief Free a previously allocated 4 KiB physical memory frame
+     * @param frame_addr Physical base address of frame to free
      */
-    static void free_block(uintptr_t phys_addr);
+    static void free_frame(uintptr_t frame_addr);
 
     /**
-     * @brief Allocate contiguous 4KB physical memory page frames
-     * @param count Number of contiguous frames to allocate
-     * @return Base physical address of allocated block, or 0 if out of memory
+     * @brief Get total system physical memory in Kilobytes
      */
-    static uintptr_t alloc_blocks(size_t count);
+    static size_t get_total_memory_kb();
 
     /**
-     * @brief Free contiguous 4KB physical memory page frames
-     * @param phys_addr Base physical address of block to free
-     * @param count Number of contiguous frames to free
+     * @brief Get free system physical memory in Kilobytes
      */
-    static void free_blocks(uintptr_t phys_addr, size_t count);
+    static size_t get_free_memory_kb();
 
-    static size_t get_total_blocks() { return m_max_blocks; }
-    static size_t get_used_blocks()  { return m_used_blocks; }
-    static size_t get_free_blocks()  { return m_max_blocks - m_used_blocks; }
+    /**
+     * @brief Get count of allocated physical frames
+     */
+    static size_t get_used_frames_count();
 };
 
 } // namespace memory

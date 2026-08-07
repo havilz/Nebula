@@ -111,10 +111,26 @@ void isr_handler(nebula::arch::x86_64::registers_t* regs) {
         nebula::drivers::Serial::write_string("[CPU EXCEPTION] ");
         if (int_no < 32) {
             nebula::drivers::Serial::write_string(nebula::arch::x86_64::exception_messages[int_no]);
+
+            // For Page Fault (#PF = Vector 14), read and print CR2 register
+            if (int_no == 14) {
+                uint32_t cr2;
+                asm volatile ("mov %%cr2, %0" : "=r"(cr2));
+                nebula::drivers::Serial::write_string(" at Faulting Linear Address: ");
+                nebula::drivers::Serial::write_hex32(cr2);
+            }
         } else {
-            nebula::drivers::Serial::write_string("Unhandled Exception");
+            nebula::drivers::Serial::write_string("Unhandled Interrupt");
         }
         nebula::drivers::Serial::write_string("\n");
+
+        // Halt CPU for unhandled CPU Exceptions to prevent infinite iret fault loops
+        if (int_no < 32) {
+            nebula::drivers::Serial::write_string("[CPU HALT] System halted to prevent exception loop.\n");
+            while (true) {
+                asm volatile ("cli; hlt");
+            }
+        }
     }
 }
 

@@ -28,8 +28,9 @@ _start:
     cli                 ; disable interrupts immediately - IF state is undefined per Multiboot spec
     mov esp, stack_top
     and esp, -16        ; Align stack to 16-byte boundary for System V ABI
-    sub esp, 12         ; 12 bytes padding so ESP + return address (4) is 16-byte aligned
 
+    push ebx            ; Push Multiboot info structure pointer (arg2)
+    push eax            ; Push Multiboot magic number (arg1)
     call kernel_main
 
 .hang:

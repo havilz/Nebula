@@ -30,6 +30,18 @@ public:
      * @param str Pointer to null-terminated C-string
      */
     static void write_string(const char* str);
+
+    /**
+     * @brief Transmit a 32-bit hexadecimal number over COM1 serial port
+     * @param val 32-bit integer value to print
+     */
+    static void write_hex32(uint32_t val);
+
+    /**
+     * @brief Transmit a decimal number over COM1 serial port
+     * @param val Decimal integer value to print
+     */
+    static void write_dec(size_t val);
 };
 
 } // namespace drivers

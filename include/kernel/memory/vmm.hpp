@@ -7,61 +7,71 @@
 namespace nebula {
 namespace memory {
 
-enum VMMFlags : uint32_t {
-    PAGE_PRESENT   = 1 << 0,  ///< Page is present in memory
-    PAGE_WRITABLE  = 1 << 1,  ///< Read/Write allowed (0 = Read-Only)
-    PAGE_USER      = 1 << 2,  ///< Userland Ring 3 accessible
-    PAGE_PWT       = 1 << 3,  ///< Page-level Write-Through
-    PAGE_PCD       = 1 << 4,  ///< Page-level Cache Disable
-    PAGE_ACCESSED  = 1 << 5,  ///< Set by CPU on read/write
-    PAGE_DIRTY     = 1 << 6,  ///< Set by CPU on write
-    PAGE_HUGE      = 1 << 7,  ///< 2MB / 1GB Huge Page
-    PAGE_GLOBAL    = 1 << 8,  ///< Global page (prevent TLB flush on CR3 load)
+static const uint32_t PAGE_PRESENT  = 0x1;
+static const uint32_t PAGE_WRITABLE = 0x2;
+static const uint32_t PAGE_USER     = 0x4;
+
+/**
+ * @brief Page Table Entry (PTE) structure (4 bytes)
+ */
+struct __attribute__((packed)) page_table_entry_t {
+    uint32_t entry;
 };
 
 /**
- * @brief Virtual Memory Manager (VMM) for 4-Level Paging Architecture
+ * @brief Page Directory Entry (PDE) structure (4 bytes)
+ */
+struct __attribute__((packed)) page_directory_entry_t {
+    uint32_t entry;
+};
+
+/**
+ * @brief Page Table structure (1024 PTEs, 4 KiB size)
+ */
+struct __attribute__((packed)) page_table_t {
+    page_table_entry_t pages[1024];
+};
+
+/**
+ * @brief Page Directory structure (1024 PDEs, 4 KiB size)
+ */
+struct __attribute__((packed)) page_directory_t {
+    page_directory_entry_t tables[1024];
+};
+
+/**
+ * @brief Virtual Memory Manager (VMM) & Paging Class
  */
 class VMM {
 private:
-    static uint32_t* m_current_pml4;
-
-    static inline void flush_tlb(uintptr_t virt) {
-        asm volatile ("invlpg (%0)" : : "r"(virt) : "memory");
-    }
+    static page_directory_t* m_current_directory;
+    static page_directory_t* m_kernel_directory;
 
 public:
     /**
-     * @brief Initialize Virtual Memory Manager and identity-map kernel memory
+     * @brief Initialize Virtual Memory Manager, identity map kernel space, and enable CPU paging
      */
     static void init();
 
     /**
-     * @brief Map a virtual address page to a physical address frame
-     * @param virt Virtual linear address to map
-     * @param phys Physical base address
-     * @param flags Page attributes (PAGE_PRESENT | PAGE_WRITABLE etc)
+     * @brief Map a virtual page to a physical frame
+     * @param virt Virtual page address
+     * @param phys Physical frame address
+     * @param flags Page flags (PAGE_PRESENT, PAGE_WRITABLE, PAGE_USER)
      */
-    static bool map_page(uintptr_t virt, uintptr_t phys, uint32_t flags);
+    static void map_page(uintptr_t virt, uintptr_t phys, uint32_t flags);
 
     /**
-     * @brief Unmap a virtual address page
-     * @param virt Virtual linear address to unmap
+     * @brief Unmap a virtual page
+     * @param virt Virtual page address
      */
-    static bool unmap_page(uintptr_t virt);
+    static void unmap_page(uintptr_t virt);
 
     /**
-     * @brief Translate a virtual address to its underlying physical address
-     * @param virt Virtual address
-     * @return Physical address, or 0 if unmapped
+     * @brief Switch active page directory register (CR3)
+     * @param dir Pointer to target Page Directory
      */
-    static uintptr_t get_physical(uintptr_t virt);
-
-    /**
-     * @brief Switch current CR3 page table directory
-     * @param pml4_phys Physical address of PML4 directory
-     */
-    static void switch_pml4(uintptr_t pml4_phys);
+    static void switch_page_directory(page_directory_t* dir);
 };
 
 } // namespace memory
