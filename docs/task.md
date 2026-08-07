@@ -14,7 +14,7 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 [X] Fase 4: Driver Hardware Input & Timer (PIT, PS/2 Keyboard, Serial) (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 5: Multitasking & Preemptive Scheduler (PCB, TCB, TSS 64-bit, Time Slicing) (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 6: Virtual File System (VFS), Initrd RAM Disk, & Ring 3 System Calls (INT 0x80) (Selesai 100% - Terverifikasi di QEMU)
-[ ] Fase 7: VBE Framebuffer & Antarmuka Grafis (GUI Window Manager)
+[X] Fase 7: VBE Framebuffer & Antarmuka Grafis (GUI Window Manager) (Selesai 100% - Terverifikasi di QEMU)
 ```
 
 ---
@@ -71,5 +71,8 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 - [x] Pengujian VFS Reading (`/initrd/hello.txt`) & System Call (`SYS_WRITE`) di QEMU (`kernel/core/kernel.cpp`).
 
 ### Fase 7: VBE Framebuffer & GUI Window Manager
-- [ ] Modus Grafis VBE High-Resolution (1024x768 32-bit Color).
-- [ ] Compositor Window Manager & Render Font.
+- [x] Driver VBE Linear Framebuffer (LFB) & Double Buffering Backbuffer RAM (`include/kernel/drivers/vbe.hpp`, `kernel/drivers/gui/vbe.cpp`).
+- [x] Bitmap Font Engine 8x16 Pixel (`include/kernel/gui/font.hpp`, `kernel/gui/font.cpp`).
+- [x] Driver PS/2 Mouse IRQ 12 & Graphic Cursor Renderer (`include/kernel/drivers/mouse.hpp`, `kernel/drivers/input/mouse.cpp`).
+- [x] Desktop Compositor & GUI Window Manager (`include/kernel/gui/wm.hpp`, `kernel/gui/wm.cpp`).
+- [x] Pengujian Desktop Wallpaper, Taskbar Uptime Clock, Jendela System Monitor, & Jendela Interactive Terminal GUI di QEMU (`kernel/core/kernel.cpp`).

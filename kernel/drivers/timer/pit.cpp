@@ -7,7 +7,6 @@
 #include "../../../include/kernel/drivers/pit.hpp"
 #include "../../../include/kernel/drivers/serial.hpp"
 #include "../../../include/kernel/arch/x86_64/io.hpp"
-#include "../../../include/kernel/scheduler/scheduler.hpp"
 
 namespace nebula {
 namespace drivers {
@@ -39,8 +38,8 @@ void PIT::init(uint32_t frequency_hz) {
 }
 
 void PIT::handle_interrupt(nebula::arch::x86_64::registers_t* regs) {
+    (void)regs;
     m_ticks++;
-    nebula::scheduler::Scheduler::handle_timer_tick(regs);
 }
 
 uint64_t PIT::get_ticks() {
@@ -71,9 +70,5 @@ extern "C" {
 
     uint64_t pit_get_ticks() {
         return nebula::drivers::PIT::get_ticks();
-    }
-
-    void pit_sleep_ms(uint32_t milliseconds) {
-        nebula::drivers::PIT::sleep_ms(milliseconds);
     }
 }

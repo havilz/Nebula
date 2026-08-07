@@ -10,13 +10,13 @@ namespace nebula {
 namespace scheduler {
 
 using nebula::process::Thread;
+using nebula::process::Process;
 using nebula::process::ThreadState;
-using nebula::process::cpu_context_t;
 
-static const size_t MAX_THREADS = 64;
+static const size_t MAX_THREADS = 16;
 
 /**
- * @brief Preemptive Round-Robin Scheduler Class
+ * @brief Preemptive Round-Robin Scheduler Manager
  */
 class Scheduler {
 private:
@@ -27,26 +27,24 @@ private:
 
 public:
     /**
-     * @brief Initialize Preemptive Round-Robin Scheduler and register timer hook
+     * @brief Initialize Scheduler and register main kernel thread (TID 0)
      */
     static void init();
 
     /**
-     * @brief Create a new kernel thread
-     * @param entry_point Pointer to thread entry function
-     * @param name Name identifier for thread
-     * @return Pointer to created Thread, or nullptr if thread limit reached
+     * @brief Create a new background kernel thread with 16 KiB stack
      */
-    static Thread* create_kernel_thread(void (*entry_point)(), const char* name);
+    static Thread* create_kernel_thread(void (*entry_point)(), const char* name = nullptr);
 
     /**
-     * @brief Preemptive scheduling tick handler called by PIT IRQ 0
+     * @brief Timer Tick handler (IRQ 0 / 100 Hz Time Slicing)
      * @param regs CPU registers frame passed by ISR stub
+     * @return New thread's stack pointer (ESP) to switch to
      */
-    static void handle_timer_tick(nebula::arch::x86_64::registers_t* regs);
+    static uint32_t handle_timer_tick(nebula::arch::x86_64::registers_t* regs);
 
     /**
-     * @brief Voluntarily yield current thread execution to next ready thread
+     * @brief Manually yield CPU time slice
      */
     static void yield();
 
