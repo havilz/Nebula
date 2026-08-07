@@ -12,7 +12,7 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 [X] Fase 2: GDT, IDT, & Interupsi CPU (ISR & PIC) (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 3: Manajemen Memori (PMM Bitmap, VMM Paging, Heap) (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 4: Driver Hardware Input & Timer (PIT, PS/2 Keyboard, Serial) (Selesai 100% - Terverifikasi di QEMU)
-[ ] Fase 5: Multitasking & Scheduler (PCB, TCB, Context Switching)
+[X] Fase 5: Multitasking & Preemptive Scheduler (PCB, TCB, TSS 64-bit, Time Slicing) (Selesai 100% - Terverifikasi di QEMU)
 [ ] Fase 6: Virtual File System (VFS) & System Call (Ring 3 Userland)
 [ ] Fase 7: VBE Framebuffer & Antarmuka Grafis (GUI Window Manager)
 ```
@@ -57,16 +57,16 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 - [x] Interactive Shell Echo & Real-time Formatting (`kernel/core/kernel.cpp`).
 
 ### Fase 5: Proses & Scheduler Preemptif
-- [ ] Modul Transisi 64-Bit Long Mode (PML4 Paging 4-Level & EFER.LME).
-- [ ] Struktur Data Process Control Block (PCB) & Thread Control Block (TCB).
-- [ ] Penukaran Konteks CPU Assembly (`asm_context_switch`).
-- [ ] Algoritma Preemptive Round-Robin Scheduler.
-- [ ] System Call Infrastructure (`syscall`/`sysret` & INT 0x80).
+- [x] Header Struktur PML4 4-Level 64-bit (`include/kernel/arch/x86_64/paging64.hpp`).
+- [x] Struct Task State Segment (TSS 64-bit 104 byte) & Manager (`include/kernel/arch/x86_64/tss.hpp`, `kernel/arch/x86_64/tss/tss.cpp`).
+- [x] Struktur Data Process Control Block (PCB) & Thread Control Block (TCB) (`include/kernel/process/process.hpp`).
+- [x] Algoritma Preemptive Round-Robin Scheduler (`include/kernel/scheduler/scheduler.hpp`, `kernel/scheduler/scheduler.cpp`).
+- [x] Pengujian Concurrent Execution Kernel Thread Alpha & Beta di QEMU (`kernel/core/kernel.cpp`).
 
 ### Fase 6: Virtual File System (VFS) & Userland
 - [ ] Abstraksi VFS VNode & Mount Table.
 - [ ] Driver Memori Virtual RAM Disk (Initrd).
-- [ ] Transisi Ring 0 Kernel ke Ring 3 User Mode.
+- [ ] Transisi Ring 0 Kernel ke Ring 3 User Mode (`syscall`/`sysret`).
 
 ### Fase 7: VBE Framebuffer & GUI Window Manager
 - [ ] Modus Grafis VBE High-Resolution (1024x768 32-bit Color).

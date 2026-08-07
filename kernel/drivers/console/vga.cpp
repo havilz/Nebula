@@ -33,8 +33,11 @@ void vga_clear(uint8_t bg) {
 void vga_write_at(size_t x, size_t y, const char* str, uint8_t fg, uint8_t bg) {
     volatile uint16_t* vga_buffer = reinterpret_cast<volatile uint16_t*>(0xB8000);
     uint8_t color = fg | (bg << 4);
+    y = y % 25;
+    x = x % 80;
     size_t index = y * 80 + x;
     for (size_t i = 0; str[i] != '\0'; i++) {
+        if (index >= 80 * 25) index = index % (80 * 25);
         vga_buffer[index++] = static_cast<uint16_t>(str[i]) | (static_cast<uint16_t>(color) << 8);
     }
 }
