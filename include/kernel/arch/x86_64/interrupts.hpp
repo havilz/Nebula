@@ -37,8 +37,8 @@ void interrupts_init();
 } // namespace nebula
 
 extern "C" {
-    void isr_handler(nebula::arch::x86_64::registers_t* regs);
-    void irq_handler(nebula::arch::x86_64::registers_t* regs);
+    uint32_t isr_handler(nebula::arch::x86_64::registers_t* regs);
+    uint32_t irq_handler(nebula::arch::x86_64::registers_t* regs);
 }
 
 #endif // NEBULA_ARCH_X86_64_INTERRUPTS_HPP

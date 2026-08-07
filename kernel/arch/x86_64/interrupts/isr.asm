@@ -85,6 +85,9 @@ IRQ 13, 45  ; IRQ13: FPU / Coprocessor
 IRQ 14, 46  ; IRQ14: Primary ATA Controller
 IRQ 15, 47  ; IRQ15: Secondary ATA Controller
 
+; System Call Vector 128 (0x80) Stub
+ISR_NOERRCODE 128 ; 128: System Call Vector 0x80
+
 isr_common_stub:
     pusha           ; Pushes edi, esi, ebp, esp, ebx, edx, ecx, eax
     mov ax, ds      ; Lower 16 bits of eax = ds
@@ -98,7 +101,7 @@ isr_common_stub:
 
     push esp        ; Pass pointer to registers_t struct as argument
     call isr_handler
-    add esp, 4      ; Clean argument pointer off stack
+    mov esp, eax    ; Switch stack pointer to returned esp
 
     pop eax         ; Restore original data segment descriptor
     mov ds, ax
@@ -123,7 +126,7 @@ irq_common_stub:
 
     push esp        ; Pass pointer to registers_t struct as argument
     call irq_handler
-    add esp, 4      ; Clean argument pointer off stack
+    mov esp, eax    ; Switch stack pointer to returned esp!
 
     pop eax         ; Restore original data segment descriptor
     mov ds, ax

@@ -4,6 +4,78 @@ Dokumen ini mencatat seluruh riwayat perubahan, keputusan arsitektur teknis, dia
 
 ---
 
+## [Task 6] - Virtual File System (VFS), Initrd RAM Disk, & System Call Infrastructure (INT 0x80)
+
+### Ringkasan Tujuan
+Membangun abstraksi Virtual File System (VFS `vnode_t`), driver Initrd RAM Disk dalam memori (`/initrd/hello.txt`), serta infrastruktur System Call DPL 3 via IDT Vector 128 (`INT 0x80`).
+
+---
+
+### Perubahan & Komponen Utama yang Dibuat
+
+#### 1. Abstraksi Virtual File System (VFS) (`include/kernel/fs/vfs.hpp` & `kernel/fs/vfs.cpp`)
+- **Struktur VNode**: Struct `vnode_t` mempresentasikan file, direktori, atau device (`VFS_FILE`, `VFS_DIRECTORY`, `VFS_CHARDEVICE`, `VFS_BLOCKDEVICE`).
+- **Tabel Operasi File**: Struct `vnode_operations_t` berisi pointer fungsi `read()`, `write()`, `open()`, `close()`, `finddir()`.
+- **API VFS**: `VFS::init()`, `VFS::read()`, `VFS::write()`, `VFS::finddir()`, dan `VFS::set_root()`.
+
+#### 2. Driver Initrd RAM Disk (`include/kernel/fs/initrd.hpp` & `kernel/fs/initrd.cpp`)
+- **Sistem Berkas RAM Disk**: `Initrd::init()` memasang root node `/initrd/` dan mendaftarkan file bawaan kernel di memori RAM (`hello.txt` & `config.sys`).
+- **Callback VFS**: Implemetasi `Initrd::read()` dan `Initrd::finddir()` untuk melayani pembacaan isi file RAM Disk.
+
+#### 3. Infrastruktur System Call IDT Vector 128 (`include/kernel/syscall/syscall.hpp` & `kernel/syscall/syscall.cpp`)
+- **Registrasi Gate DPL 3**: Mengonfigurasi IDT Vector 128 (`0x80`) dengan flag `0xEE` (Present, 32-bit Interrupt Gate, DPL 3 User Accessible).
+- **Tabel Layanan Syscall**: `SYS_READ` (1), `SYS_WRITE` (2), `SYS_OPEN` (3), `SYS_CLOSE` (4), `SYS_YIELD` (5), `SYS_EXIT` (6).
+- **Syscall Dispatcher**: `Syscall::handle_syscall()` membaca `EAX` (nomor syscall), `EBX`, `ECX`, `EDX` (argumen), memproses layanan di Ring 0, dan mengembalikan hasil ke `EAX`.
+
+#### 4. Pengujian VFS & System Call di Kernel Main (`kernel/core/kernel.cpp`)
+- **Membaca Berkas VFS**: Berhasil menemukan dan membaca isi `/initrd/hello.txt` (62 byte: `"Welcome to Nebula OS Filesystem! - Initrd RAM Disk test file.\n"`).
+- **Trigering System Call `INT 0x80`**: Mengeksekusi inline assembly `mov $2, %eax; int $0x80` untuk memicu `SYS_WRITE` dari Userland space ke Serial COM1 log.
+
+---
+
+### Catatan Diagnostik & Pemecahan Masalah Teknis
+
+1. **Fix Exception `#GP` (General Protection Fault) pada Pemanggilan `INT 0x80`**:
+   - *Penyebab*: Gate IDT Vector 128 (`0x80`) sebelumnya terkonfigurasi dengan DPL 0 (`0x8E`), yang memicu cembung proteksi `#GP` saat diakses dari Userland/Instruction `int`.
+   - *Solusi*: Mengatur atribut DPL 3 (`0xEE`) pada `IDT::set_gate(128, isr128, 0x08, 0xEE)` serta menambahkan stub assembly khusus `isr128` di [isr.asm](file:///c:/project/Nebula/kernel/arch/x86_64/interrupts/isr.asm).
+
+---
+
+### Hasil Akhir Eksekusi (Verification Status)
+
+- **Mode GUI (`mingw32-make run`)**: Jendela QEMU menampilkan spanduk konsol Phase 6:
+  ```text
+  [OK] VFS & Initrd RAM Disk Mounted (/initrd/hello.txt)
+  [OK] System Call Gate INT 0x80 Active (SYS_WRITE / SYS_READ)
+  [OK] Multitasking & Userland Infrastructure Ready!
+  nebula> _
+  ```
+- **Mode Serial Terminal**: Port COM1 memancarkan log pembacaan VFS & System Call:
+  ```text
+  [VFS] Virtual File System Initialized
+  [INITRD] Mounted RAM Disk at /initrd/ (Files: 2)
+  [SYSCALL] INT 0x80 System Call Dispatcher Registered
+  [TEST VFS] Searching for /initrd/hello.txt...
+  [TEST VFS] Successfully Read /initrd/hello.txt (62 bytes):
+  Welcome to Nebula OS Filesystem! - Initrd RAM Disk test file.
+  [TEST SYSCALL] Triggering INT 0x80 System Call (SYS_WRITE)...
+  [SYSCALL TEST] Hello via INT 0x80 System Call!
+  [KERNEL] Phase 6 VFS & System Call Infrastructure Active!
+  ```
+
+---
+
+### Status Pengembangan Saat Ini:
+- **Phase 1 (Multiboot 1 Kernel & VGA Driver)**: SELESAI (100%)
+- **Phase 2 (GDT, IDT, PIC & ISR Handling)**: SELESAI (100%)
+- **Phase 3 (Manajemen Memori - PMM, VMM Paging, & Heap)**: SELESAI (100%)
+- **Phase 4 (Driver Hardware Input & Timer - PIT, PS/2, Serial)**: SELESAI (100%)
+- **Phase 5 (Multitasking & Preemptive Scheduler)**: SELESAI (100%)
+- **Phase 6 (Virtual File System & Ring 3 Syscall)**: SELESAI (100%)
+- **Phase 7 (VBE Framebuffer & GUI Window Manager)**: Siap Dilanjutkan
+
+---
+
 ## [Task 5] - Task State Segment (TSS 64-bit), PCB/TCB, & Preemptive Round-Robin Scheduler
 
 ### Ringkasan Tujuan
@@ -65,13 +137,3 @@ Membangun subsistem Multitasking dan Scheduler Preemptif: Task State Segment (TS
   [THREAD ALPHA] Running in background (TID 1)
   [THREAD BETA] Running in background (TID 2)
   ```
-
----
-
-### Status Pengembangan Saat Ini:
-- **Phase 1 (Multiboot 1 Kernel & VGA Driver)**: SELESAI (100%)
-- **Phase 2 (GDT, IDT, PIC & ISR Handling)**: SELESAI (100%)
-- **Phase 3 (Manajemen Memori - PMM, VMM Paging, & Heap)**: SELESAI (100%)
-- **Phase 4 (Driver Hardware Input & Timer - PIT, PS/2, Serial)**: SELESAI (100%)
-- **Phase 5 (Multitasking & Preemptive Scheduler)**: SELESAI (100%)
-- **Phase 6 (Virtual File System & Ring 3 Syscall)**: Siap Dilanjutkan

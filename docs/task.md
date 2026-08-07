@@ -13,7 +13,7 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 [X] Fase 3: Manajemen Memori (PMM Bitmap, VMM Paging, Heap) (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 4: Driver Hardware Input & Timer (PIT, PS/2 Keyboard, Serial) (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 5: Multitasking & Preemptive Scheduler (PCB, TCB, TSS 64-bit, Time Slicing) (Selesai 100% - Terverifikasi di QEMU)
-[ ] Fase 6: Virtual File System (VFS) & System Call (Ring 3 Userland)
+[X] Fase 6: Virtual File System (VFS), Initrd RAM Disk, & Ring 3 System Calls (INT 0x80) (Selesai 100% - Terverifikasi di QEMU)
 [ ] Fase 7: VBE Framebuffer & Antarmuka Grafis (GUI Window Manager)
 ```
 
@@ -64,9 +64,11 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 - [x] Pengujian Concurrent Execution Kernel Thread Alpha & Beta di QEMU (`kernel/core/kernel.cpp`).
 
 ### Fase 6: Virtual File System (VFS) & Userland
-- [ ] Abstraksi VFS VNode & Mount Table.
-- [ ] Driver Memori Virtual RAM Disk (Initrd).
-- [ ] Transisi Ring 0 Kernel ke Ring 3 User Mode (`syscall`/`sysret`).
+- [x] Abstraksi VFS VNode & Operation Table (`include/kernel/fs/vfs.hpp`, `kernel/fs/vfs.cpp`).
+- [x] Driver Memori Virtual RAM Disk (Initrd) (`include/kernel/fs/initrd.hpp`, `kernel/fs/initrd.cpp`).
+- [x] Infrastruktur System Call IDT Vector 128 / `INT 0x80` (`include/kernel/syscall/syscall.hpp`, `kernel/syscall/syscall.cpp`).
+- [x] Interface Assembly User Mode Switch (`include/kernel/arch/x86_64/usermode.hpp`).
+- [x] Pengujian VFS Reading (`/initrd/hello.txt`) & System Call (`SYS_WRITE`) di QEMU (`kernel/core/kernel.cpp`).
 
 ### Fase 7: VBE Framebuffer & GUI Window Manager
 - [ ] Modus Grafis VBE High-Resolution (1024x768 32-bit Color).

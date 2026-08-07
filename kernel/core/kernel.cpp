@@ -1,6 +1,6 @@
 /**
  * @file kernel.cpp
- * @brief Kernel entry point for Nebula OS - Phase 5 Verification (Preemptive Multitasking & Scheduler)
+ * @brief Kernel entry point for Nebula OS - Phase 6 Verification (VFS, Initrd RAM Disk, & Ring 3 Syscalls)
  * @author Nebula OS Team
  */
 
@@ -18,6 +18,9 @@
 #include "../../include/kernel/memory/heap.hpp"
 #include "../../include/kernel/process/process.hpp"
 #include "../../include/kernel/scheduler/scheduler.hpp"
+#include "../../include/kernel/fs/vfs.hpp"
+#include "../../include/kernel/fs/initrd.hpp"
+#include "../../include/kernel/syscall/syscall.hpp"
 
 #include "../drivers/console/vga.cpp"
 #include "../drivers/serial/serial.cpp"
@@ -33,6 +36,9 @@
 #include "../memory/heap.cpp"
 #include "../memory/kheap.cpp"
 #include "../scheduler/scheduler.cpp"
+#include "../fs/vfs.cpp"
+#include "../fs/initrd.cpp"
+#include "../syscall/syscall.cpp"
 
 using nebula::drivers::VGAConsole;
 using nebula::drivers::Serial;
@@ -51,6 +57,10 @@ using nebula::memory::PMM;
 using nebula::memory::VMM;
 using nebula::memory::KernelHeap;
 using nebula::scheduler::Scheduler;
+using nebula::fs::VFS;
+using nebula::fs::Initrd;
+using nebula::fs::vnode_t;
+using nebula::syscall::Syscall;
 
 static void klog(const char* str) {
     Serial::write_string(str);
@@ -121,6 +131,42 @@ extern "C" void kernel_main(uint32_t magic, multiboot_info_t* mb_info) {
     klog("[SCHEDULER] Initializing Preemptive Round-Robin Scheduler...\n");
     Scheduler::init();
 
+    klog("[VFS] Initializing Virtual File System...\n");
+    VFS::init();
+
+    klog("[INITRD] Mounting Initrd RAM Disk at /initrd/...\n");
+    vnode_t* root_node = Initrd::init(0);
+
+    klog("[SYSCALL] Initializing System Call Vector (INT 0x80)...\n");
+    Syscall::init();
+
+    // Test Reading File from VFS Initrd RAM Disk
+    klog("[TEST VFS] Searching for /initrd/hello.txt...\n");
+    vnode_t* file_node = VFS::finddir(root_node, "hello.txt");
+    if (file_node != nullptr) {
+        char read_buf[128];
+        for (size_t i = 0; i < sizeof(read_buf); i++) read_buf[i] = 0;
+        uint32_t bytes = VFS::read(file_node, 0, sizeof(read_buf) - 1, reinterpret_cast<uint8_t*>(read_buf));
+        klog("[TEST VFS] Successfully Read /initrd/hello.txt (");
+        Serial::write_dec(bytes);
+        klog(" bytes):\n");
+        klog(read_buf);
+    }
+
+    // Test System Call INT 0x80 (SYS_WRITE)
+    klog("[TEST SYSCALL] Triggering INT 0x80 System Call (SYS_WRITE)...\n");
+    const char* sys_msg = "[SYSCALL TEST] Hello via INT 0x80 System Call!\n";
+    asm volatile (
+        "mov $2, %%eax\n" // SYS_WRITE = 2
+        "mov $1, %%ebx\n" // fd = 1
+        "mov %0, %%ecx\n" // str
+        "mov $45, %%edx\n"
+        "int $0x80\n"
+        :
+        : "r"(sys_msg)
+        : "eax", "ebx", "ecx", "edx"
+    );
+
     klog("[SCHEDULER] Creating Kernel Thread Alpha...\n");
     Scheduler::create_kernel_thread(kernel_thread_alpha, "ThreadAlpha");
 
@@ -134,18 +180,18 @@ extern "C" void kernel_main(uint32_t magic, multiboot_info_t* mb_info) {
     klog("[KERNEL] Clearing VGA screen with blue background...\n");
     VGAConsole::clear(COLOR_BLUE);
 
-    klog("[KERNEL] Writing Phase 5 VGA banner...\n");
+    klog("[KERNEL] Writing Phase 6 VGA banner...\n");
     VGAConsole::write_at(0, 2, "========================================", COLOR_CYAN, COLOR_BLUE);
-    VGAConsole::write_at(0, 3, "       Nebula OS Kernel - Phase 5       ", COLOR_WHITE, COLOR_BLUE);
+    VGAConsole::write_at(0, 3, "       Nebula OS Kernel - Phase 6       ", COLOR_WHITE, COLOR_BLUE);
     VGAConsole::write_at(0, 4, "========================================", COLOR_CYAN, COLOR_BLUE);
 
-    VGAConsole::write_at(0, 6, "[OK] 64-bit TSS & Kernel Stack Initialized", COLOR_LIGHT_GREEN, COLOR_BLUE);
-    VGAConsole::write_at(0, 7, "[OK] Preemptive Scheduler Active (100 Hz Time Slicing)", COLOR_LIGHT_GREEN, COLOR_BLUE);
-    VGAConsole::write_at(0, 8, "[OK] Thread Alpha & Thread Beta Running Concurrently!", COLOR_YELLOW, COLOR_BLUE);
+    VGAConsole::write_at(0, 6, "[OK] VFS & Initrd RAM Disk Mounted (/initrd/hello.txt)", COLOR_LIGHT_GREEN, COLOR_BLUE);
+    VGAConsole::write_at(0, 7, "[OK] System Call Gate INT 0x80 Active (SYS_WRITE / SYS_READ)", COLOR_LIGHT_GREEN, COLOR_BLUE);
+    VGAConsole::write_at(0, 8, "[OK] Multitasking & Userland Infrastructure Ready!", COLOR_YELLOW, COLOR_BLUE);
 
     VGAConsole::write_at(0, 15, "nebula> ", COLOR_CYAN, COLOR_BLUE);
 
-    klog("[KERNEL] Phase 5 Preemptive Multitasking active!\n");
+    klog("[KERNEL] Phase 6 VFS & System Call Infrastructure Active!\n");
 
     size_t col = 8;
     size_t row = 15;
