@@ -9,7 +9,7 @@ namespace arch {
 namespace x86_64 {
 
 /**
- * @brief Standard 8-byte GDT Entry structure for x86_64 Long Mode
+ * @brief Standard 8-byte GDT Entry structure
  */
 struct __attribute__((packed)) GDTEntry {
     uint16_t limit_low;       ///< Lower 16 bits of segment limit
@@ -21,40 +21,11 @@ struct __attribute__((packed)) GDTEntry {
 };
 
 /**
- * @brief System 16-byte TSS Descriptor structure for 64-bit GDT
- */
-struct __attribute__((packed)) TSSDescriptor {
-    uint16_t limit_low;       ///< Lower 16 bits of segment limit
-    uint16_t base_low;        ///< Lower 16 bits of base address
-    uint8_t  base_middle;     ///< Middle 8 bits of base address
-    uint8_t  access;          ///< Access flags and TSS type
-    uint8_t  granularity;     ///< Granularity and upper 4 bits of limit
-    uint8_t  base_high;       ///< Middle-high 8 bits of base address
-    uint32_t base_upper;      ///< Highest 32 bits of 64-bit base address
-    uint32_t reserved;        ///< Reserved bits (must be 0)
-};
-
-/**
- * @brief 64-bit Task State Segment (TSS) structure (104 bytes)
- */
-struct __attribute__((packed)) TSSEntry {
-    uint32_t reserved0;
-    uint64_t rsp0;            ///< Stack pointer for Privilege Level 0
-    uint64_t rsp1;            ///< Stack pointer for Privilege Level 1
-    uint64_t rsp2;            ///< Stack pointer for Privilege Level 2
-    uint64_t reserved1;
-    uint64_t ist[7];          ///< Interrupt Stack Table (IST1 - IST7)
-    uint64_t reserved2;
-    uint16_t reserved3;
-    uint16_t iomap_base;      ///< I/O Map Base Address
-};
-
-/**
- * @brief GDT Pointer structure for LGDT instruction
+ * @brief GDT Pointer structure for LGDT instruction (6 bytes)
  */
 struct __attribute__((packed)) GDTPointer {
     uint16_t limit;           ///< Table limit (size - 1)
-    uint64_t base;            ///< Base linear address of GDT
+    uint32_t base;            ///< Base linear address of GDT
 };
 
 /**
@@ -62,17 +33,15 @@ struct __attribute__((packed)) GDTPointer {
  */
 class GDT {
 private:
-    static const size_t GDT_ENTRIES = 7;
+    static const size_t GDT_ENTRIES = 5;
     static GDTEntry m_gdt[GDT_ENTRIES];
     static GDTPointer m_gdt_ptr;
-    static TSSEntry m_tss;
 
     static void set_gate(size_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t gran);
-    static void set_tss_gate(size_t num, uint64_t base, uint32_t limit, uint8_t access, uint8_t gran);
 
 public:
     /**
-     * @brief Initialize GDT entries and TSS, then load GDTR
+     * @brief Initialize GDT entries and load GDTR
      */
     static void init();
 };
@@ -80,5 +49,13 @@ public:
 } // namespace x86_64
 } // namespace arch
 } // namespace nebula
+
+extern "C" {
+    /**
+     * @brief Assembly routine to reload GDTR register and segment registers
+     * @param gdt_ptr_addr Physical address of GDTPointer
+     */
+    void gdt_flush(uint32_t gdt_ptr_addr);
+}
 
 #endif // NEBULA_ARCH_X86_64_GDT_HPP

@@ -10,85 +10,73 @@ namespace nebula {
 namespace arch {
 namespace x86_64 {
 
-// Static member definitions
-GDTEntry GDT::m_gdt[GDT_ENTRIES];
+GDTEntry GDT::m_gdt[GDT::GDT_ENTRIES];
 GDTPointer GDT::m_gdt_ptr;
-TSSEntry GDT::m_tss;
-
-/**
- * @brief Helper assembly function to load GDTR and reload segment registers
- */
-static void gdt_flush(uint32_t gdtr_addr) {
-    asm volatile (
-        "movl %0, %%eax\n\t"
-        "lgdt (%%eax)\n\t"
-        "movw $0x10, %%ax\n\t"
-        "movw %%ax, %%ds\n\t"
-        "movw %%ax, %%es\n\t"
-        "movw %%ax, %%fs\n\t"
-        "movw %%ax, %%gs\n\t"
-        "movw %%ax, %%ss\n\t"
-        "pushl $0x08\n\t"
-        "pushl $1f\n\t"
-        "lret\n\t"
-        "1:\n\t"
-        :
-        : "r"(gdtr_addr)
-        : "eax", "memory"
-    );
-}
-
-/**
- * @brief Helper assembly function to load Task Register (TR)
- */
-static void tss_flush(uint16_t selector) {
-    asm volatile (
-        "ltr %0"
-        :
-        : "r"(selector)
-    );
-}
 
 void GDT::set_gate(size_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t gran) {
-    m_gdt[num].base_low    = (base & 0xFFFF);
-    m_gdt[num].base_middle = (base >> 16) & 0xFF;
-    m_gdt[num].base_high   = (base >> 24) & 0xFF;
+    if (num >= GDT_ENTRIES) return;
 
-    m_gdt[num].limit_low   = (limit & 0xFFFF);
-    m_gdt[num].granularity = (limit >> 16) & 0x0F;
+    m_gdt[num].base_low    = static_cast<uint16_t>(base & 0xFFFF);
+    m_gdt[num].base_middle = static_cast<uint8_t>((base >> 16) & 0xFF);
+    m_gdt[num].base_high   = static_cast<uint8_t>((base >> 24) & 0xFF);
 
-    m_gdt[num].granularity |= gran & 0xF0;
+    m_gdt[num].limit_low   = static_cast<uint16_t>(limit & 0xFFFF);
+    m_gdt[num].granularity = static_cast<uint8_t>(((limit >> 16) & 0x0F) | (gran & 0xF0));
+
     m_gdt[num].access      = access;
 }
 
-void GDT::set_tss_gate(size_t num, uint64_t base, uint32_t limit, uint8_t access, uint8_t gran) {
-    set_gate(num, (uint32_t)base, limit, access, gran);
-}
-
 void GDT::init() {
-    // 1. Setup GDT Entries
-    set_gate(0, 0, 0, 0, 0);                 // Null descriptor
-    set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF);  // Kernel Code Segment 0x08
-    set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF);  // Kernel Data Segment 0x10
-    set_gate(3, 0, 0xFFFFFFFF, 0xFA, 0xCF);  // User Code Segment 0x18
-    set_gate(4, 0, 0xFFFFFFFF, 0xF2, 0xCF);  // User Data Segment 0x20
-    set_tss_gate(5, (uint32_t)&m_tss, sizeof(TSSEntry) - 1, 0x89, 0x00); // TSS Segment 0x28
+    m_gdt_ptr.limit = static_cast<uint16_t>(sizeof(m_gdt) - 1);
+    m_gdt_ptr.base  = reinterpret_cast<uint32_t>(&m_gdt);
 
-    // Initialize TSS fields
-    m_tss.rsp0 = 0x00;
-    m_tss.iomap_base = sizeof(TSSEntry);
+    // Initialize all entries to 0
+    for (size_t i = 0; i < GDT_ENTRIES; i++) {
+        set_gate(i, 0, 0, 0, 0);
+    }
 
-    // 2. Setup GDT Register (GDTR)
-    m_gdt_ptr.limit = sizeof(m_gdt) - 1;
-    m_gdt_ptr.base  = (uint32_t)&m_gdt;
+    // 0x00: Null Descriptor
+    set_gate(0, 0, 0, 0, 0);
 
-    // 3. Load GDT using lgdt instruction
-    gdt_flush((uint32_t)&m_gdt_ptr);
+    // 0x08: Kernel Code Segment (Ring 0, Executable/Read, 4GB limit)
+    set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF);
 
-    // 4. Load Task Register (TSS)
-    tss_flush(0x28);
+    // 0x10: Kernel Data Segment (Ring 0, Read/Write, 4GB limit)
+    set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF);
+
+    // 0x18: User Code Segment (Ring 3, Executable/Read, 4GB limit)
+    set_gate(3, 0, 0xFFFFFFFF, 0xFA, 0xCF);
+
+    // 0x20: User Data Segment (Ring 3, Read/Write, 4GB limit)
+    set_gate(4, 0, 0xFFFFFFFF, 0xF2, 0xCF);
+
+    // Reload GDTR and segment registers
+    gdt_flush(reinterpret_cast<uint32_t>(&m_gdt_ptr));
 }
 
 } // namespace x86_64
 } // namespace arch
 } // namespace nebula
+
+extern "C" {
+    void gdt_flush(uint32_t gdt_ptr_addr) {
+        asm volatile (
+            "lgdt (%0)\n\t"
+            "ljmp $0x08, $1f\n\t"
+            "1:\n\t"
+            "mov $0x10, %%ax\n\t"
+            "mov %%ax, %%ds\n\t"
+            "mov %%ax, %%es\n\t"
+            "mov %%ax, %%fs\n\t"
+            "mov %%ax, %%gs\n\t"
+            "mov %%ax, %%ss\n\t"
+            :
+            : "r"(gdt_ptr_addr)
+            : "eax", "memory"
+        );
+    }
+
+    void gdt_init() {
+        nebula::arch::x86_64::GDT::init();
+    }
+}

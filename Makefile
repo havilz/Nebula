@@ -1,4 +1,4 @@
-# Makefile untuk Nebula OS - Phase 1 (Barebones Kernel)
+# Makefile untuk Nebula OS - Phase 2 (GDT, IDT, PIC & Interrupt Handling)
 # Dikompilasi menggunakan MSYS2 UCRT64 toolchain & LLD Linker di Windows
 
 CC      = g++
@@ -27,9 +27,11 @@ CFLAGS_DEBUG = -m32 -ffreestanding -O0 -g -Wall -Wextra -fno-exceptions -fno-rtt
 ASMFLAGS_DEBUG = -f elf32 -g -F dwarf
 
 OBJS = $(BUILD_DIR)/boot.o \
+       $(BUILD_DIR)/isr.o \
        $(BUILD_DIR)/kernel.o
 
 DEBUG_OBJS = $(DEBUG_DIR)/boot.o \
+             $(DEBUG_DIR)/isr.o \
              $(DEBUG_DIR)/kernel.o
 
 all: $(BUILD_DIR)/nebula.elf
@@ -38,6 +40,9 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 $(BUILD_DIR)/boot.o: $(BOOT_DIR)/boot.asm | $(BUILD_DIR)
+	$(ASM) $(ASMFLAGS) $< -o $@
+
+$(BUILD_DIR)/isr.o: $(KERNEL_DIR)/arch/x86_64/interrupts/isr.asm | $(BUILD_DIR)
 	$(ASM) $(ASMFLAGS) $< -o $@
 
 $(BUILD_DIR)/kernel.o: $(KERNEL_DIR)/core/kernel.cpp | $(BUILD_DIR)
@@ -55,6 +60,9 @@ $(DEBUG_DIR):
 	mkdir -p $(DEBUG_DIR)
 
 $(DEBUG_DIR)/boot.o: $(BOOT_DIR)/boot.asm | $(DEBUG_DIR)
+	$(ASM) $(ASMFLAGS_DEBUG) $< -o $@
+
+$(DEBUG_DIR)/isr.o: $(KERNEL_DIR)/arch/x86_64/interrupts/isr.asm | $(DEBUG_DIR)
 	$(ASM) $(ASMFLAGS_DEBUG) $< -o $@
 
 $(DEBUG_DIR)/kernel.o: $(KERNEL_DIR)/core/kernel.cpp | $(DEBUG_DIR)

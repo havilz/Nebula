@@ -1,44 +1,52 @@
-# Nebula OS
+# 🌌 Nebula OS
 
-**Nebula OS** adalah Sistem Operasi modular 64-bit (x86_64) yang dibangun dari nol (bare-metal) menggunakan C++ modern dan Assembly. Project ini dirancang untuk menyediakan kernel hybrid yang aman, cepat, dan terstruktur dengan antarmuka grafis (GUI Window Manager) di atasnya.
-
----
-
-## 1. Fitur Utama & Target
-
-* **Arsitektur x86_64 Native**: Berjalan di atas mode 64-bit Long Mode dengan struktur Paging PML4 4-tingkat.
-* **Higher-Half Kernel**: Pemetaan memori terpisah antara area Kernel (`0xFFFF800000000000`) dan Userland (`0x0000000000000000`).
-* **C++ Bare-Metal (Freestanding)**: Pemrograman C++ tanpa dependensi OS eksternal (`-ffreestanding -fno-exceptions -fno-rtti`).
-* **Manajemen Memori Lengkap**: PMM (Physical Memory Manager Bitmap), VMM (Virtual Memory Manager Paging), dan Heap Allocator (`kmalloc`/`operator new`).
-* **Multitasking Preemptif**: Scheduler proses & thread berbasis interupsi timer hardware (PIT/APIC).
-* **Virtual File System (VFS)**: Abstraksi akses berkas terpadu.
-* **Graphical Desktop & Window Manager**: Render grafis VBE Linear Framebuffer 32-bit color dengan antarmuka jendela interaktif.
+**Nebula OS** adalah sistem operasi *bare-metal* buatan sendiri (*custom operating system*) yang dirancang dari nol (*from scratch*) menggunakan **C++20 Freestanding**, **Assembly (x86_64)**, dan **GNU Build System**. Proyek ini bertujuan untuk membangun kernel OS yang modular, cepat, aman, dan kaya fitur dari tingkat bootloader hingga antarmuka grafis (VBE GUI).
 
 ---
 
-## 2. Struktur Direktori & Fungsi Folder
+## 🏗️ 1. Fitur Utama & Spesifikasi Arsitektur
+
+- **Architecture Target**: x86_64 Long Mode (64-bit) dengan kompatibilitas Multiboot 1 / Multiboot 2.
+- **Kernel Design**: Hybrid-Modular Architecture (Ring 0 Kernel Space & Ring 3 User Space).
+- **Core Memory Management**: Physical Memory Manager (Bitmap PMM), Virtual Memory Manager (PML4 Paging VMM), dan Custom Kernel Heap Allocator (`kmalloc`/`kfree`).
+- **Interrupt & Hardware**: GDT, IDT (256 Vector), 8259 PIC Remap, APIC/IOAPIC support, PIT Timer (100Hz), PS/2 Keyboard, dan UART 16550 Serial Logging.
+- **Multitasking & Scheduler**: Preemptive Round-Robin / MLFQ Scheduler dengan PCB & TCB context switching.
+- **File System & Shell**: Virtual File System (VFS), RAM Disk (Initrd), dan Userland Shell Console.
+
+---
+
+## 📂 2. Struktur Direktori Proyek
 
 ```text
 Nebula/
 ├── boot/                   # Bootloader & linker script spesifik arsitektur
 │   └── x86_64/             # Kode assembly bootloader & transisi 64-bit Long Mode
-├── kernel/                 # Kode sumber utama Kernel Ring 0
-│   ├── core/               # Entry point kernel main, init, panic handler, & logger
-│   ├── arch/               # Abstraksi hardware CPU (x86_64 GDT, IDT, Paging, Context)
-│   ├── memory/             # Manajer memori fisik (PMM), virtual (VMM), heap, & allocator
-│   ├── process/            # Manajemen proses, thread, & alokasi PID
-│   ├── scheduler/          # Scheduler multitasking & kebijakan penjadwalan (Round Robin, MLFQ)
-│   ├── ipc/                # Komunikasi antar proses (Pipe, Channel, Shared Memory)
-│   ├── filesystem/         # Virtual File System (VFS), inode, & driver filesystem
-│   ├── drivers/            # Driver perangkat keras (Console, Keyboard, Timer, Serial, Storage, Network)
-│   ├── syscall/            # Lapisan & handler System Call (Ring 3 ke Ring 0)
-│   └── runtime/            # Support runtime C++ bare-metal & konstruktor global
+├── include/                # Header file C++ (.hpp) terpusat untuk Public API & Subsistem
+│   └── kernel/             # Header deklarasi terstruktur (arch, core, drivers, memory, etc.)
+│       ├── arch/           # Header spesifikasi CPU (GDT, IDT, PIC, Paging, Context)
+│       ├── core/           # Header entry point, panic handler, & logger
+│       ├── drivers/        # Header driver perangkat keras (Console, Serial, Timer, Keyboard)
+│       ├── memory/         # Header PMM, VMM, Heap, & Allocator
+│       ├── process/        # Header PCB, TCB, & Process Manager
+│       ├── scheduler/      # Header Scheduler Multitasking
+│       ├── filesystem/     # Header VFS & Inode
+│       └── syscall/        # Header System Call Interface
+├── kernel/                 # Kode sumber implementasi Kernel Ring 0 (.cpp & .asm)
+│   ├── core/               # Implementasi kernel main, init, panic handler, & logger
+│   ├── arch/               # Logika abstraksi hardware CPU (GDT, IDT, PIC, Interrupts)
+│   ├── memory/             # Logika memori fisik (PMM), virtual (VMM), heap, & allocator
+│   ├── process/            # Logika manajemen proses, thread, & alokasi PID
+│   ├── scheduler/          # Logika scheduler multitasking (Preemptive Round Robin)
+│   ├── ipc/                # Logika komunikasi antar proses (Pipe, Shared Memory)
+│   ├── filesystem/         # Logika Virtual File System (VFS) & driver filesystem
+│   ├── drivers/            # Logika driver perangkat keras (Console, Keyboard, Serial)
+│   ├── syscall/            # Logika handler System Call (Ring 3 ke Ring 0)
+│   └── runtime/            # Support runtime C++ bare-metal
 ├── userland/               # Aplikasi & lingkungan pengguna Ring 3 (Init, Shell, Commands)
 ├── libc/                   # C Standard Library buatan sendiri
-├── include/                # Header file C++ (.hpp) terpusat untuk kernel & subsistem
 ├── tests/                  # Pengujian unit, subsistem, & integrasi
 ├── tools/                  # Alat bantu build system, pembuatan ISO image, & debugging
-├── docs/                   # Dokumentasi arsitektur, spesifikasi memori, task.md, RULES.md, & PATTERN.md
+├── docs/                   # Dokumentasi arsitektur, spesifikasi memori, CHANGELOG.md, RULES.md
 │   ├── architecture/       # Dokumentasi gambaran umum arsitektur & alur boot
 │   ├── decisions/          # Dokumentasi keputusan arsitektur (ADR)
 │   ├── memory/             # Spesifikasi manajemen memori
@@ -57,37 +65,37 @@ Nebula/
 
 ## 3. Persiapan & Persyaratan (Prerequisites)
 
-Untuk membangun dan menjalankan Nebula OS, pastikan perangkat Anda memiliki:
+Untuk mengompilasi dan menguji **Nebula OS**, pastikan toolchain berikut terpasang di sistem Anda:
 
-* **Compiler**: GCC / G++ dengan dukungan target `-m64` atau `x86_64-elf-gcc`.
-* **Assembler**: NASM (Netwide Assembler).
-* **Build Tool**: GNU Make.
-* **Emulator**: QEMU (`qemu-system-x86_64`).
-* **ISO Creator**: `xorriso` / `grub-mkrescue`.
+### Windows (MSYS2 UCRT64 Environment):
+- **GCC / G++**: Cross-compiler i686/x86_64 (`g++ -m32`)
+- **NASM**: Netwide Assembler (`nasm -f elf32`)
+- **LLD Linker**: LLVM Linker (`ld.lld`)
+- **Make**: `mingw32-make`
+- **QEMU**: `qemu-system-i386` atau `qemu-system-x86_64`
+- **GDB**: GNU Debugger (`gdb`)
 
 ---
 
-## 4. Cara Compiling & Running
+## 🚀 4. Cara Pengompilan & Eksekusi
 
+### Membangun & Menjalankan Release Mode (QEMU GUI):
 ```bash
-# Compiling kernel dan langsung menjalankan di QEMU Emulator:
-make run
-
-# Membersihkan file objek hasil kompilasi:
-make clean
+mingw32-make run
 ```
 
----
+### Membangun Debug Target & Menjalankan QEMU GDB Server:
+```bash
+mingw32-make debug
+mingw32-make qemu-debug
+```
 
-## 5. Dokumentasi Lengkap
-
-* [Tracking Task & Roadmap Project](docs/task.md)
-* [Arsitektur Umum OS](docs/architecture/overview.md)
-* [Spesifikasi Alur Booting](docs/architecture/boot_sequence.md)
-* [Aturan Penulisan Kode](docs/RULES.md)
-* [Pola Desain C++ OS](docs/PATTERN.md)
+Atau cukup tekan **`F5`** di VS Code untuk memulai sesi visual debugging terintegrasi.
 
 ---
 
-## 6. Lisensi
-Dikembangkan di bawah lisensi [MIT License](LICENSE).
+## 📜 5. Dokumentasi & Aturan Kontribusi
+- **Roadmap & Progress**: [docs/task.md](file:///c:/project/Nebula/docs/task.md)
+- **Changelog & Technical Logs**: [docs/CHANGELOG.md](file:///c:/project/Nebula/docs/CHANGELOG.md)
+- **Coding Standards & Rules**: [docs/RULES.md](file:///c:/project/Nebula/docs/RULES.md)
+- **Architecture Patterns**: [docs/PATTERN.md](file:///c:/project/Nebula/docs/PATTERN.md)

@@ -9,24 +9,22 @@ namespace arch {
 namespace x86_64 {
 
 /**
- * @brief 16-byte IDT Entry structure for x86_64 Long Mode
+ * @brief IDT Gate Entry structure (8 bytes)
  */
 struct __attribute__((packed)) IDTEntry {
-    uint16_t offset_low;      ///< Lower 16 bits of ISR offset
-    uint16_t selector;        ///< Target code segment selector (e.g. 0x08)
-    uint8_t  ist;             ///< Interrupt Stack Table offset (bits 0..2)
-    uint8_t  type_attr;       ///< Gate type, DPL, and Present flag
-    uint16_t offset_mid;      ///< Middle 16 bits of ISR offset
-    uint32_t offset_high;     ///< Upper 32 bits of ISR offset
-    uint32_t zero;            ///< Reserved (must be zero)
+    uint16_t base_low;  ///< Lower 16 bits of ISR function address
+    uint16_t selector;  ///< Kernel Code Segment Selector (0x08)
+    uint8_t  always0;   ///< Reserved (must be 0)
+    uint8_t  flags;     ///< Type and Attributes (0x8E = Present, Ring 0, Interrupt Gate 32-bit)
+    uint16_t base_high; ///< Upper 16 bits of ISR function address
 };
 
 /**
- * @brief IDT Pointer structure for LIDT instruction
+ * @brief IDTR pointer structure (6 bytes)
  */
 struct __attribute__((packed)) IDTPointer {
-    uint16_t limit;           ///< Table limit (size - 1)
-    uint64_t base;            ///< Linear base address of IDT
+    uint16_t limit; ///< Size of IDT table - 1
+    uint32_t base;  ///< Base physical address of IDT array
 };
 
 /**
@@ -40,23 +38,26 @@ private:
 
 public:
     /**
-     * @brief Set an IDT entry for a specific vector
-     * @param vector Interrupt vector index (0 - 255)
-     * @param isr_base Address of Interrupt Service Routine handler
-     * @param selector Segment selector (0x08 for kernel code)
-     * @param flags Type and attribute flags
-     * @param ist Interrupt Stack Table offset (0 for default)
-     */
-    static void set_gate(uint8_t vector, uint64_t isr_base, uint16_t selector, uint8_t flags, uint8_t ist = 0);
-
-    /**
-     * @brief Initialize IDT gates and load IDTR
+     * @brief Initialize IDT gates and load IDTR register
      */
     static void init();
+
+    /**
+     * @brief Configure an IDT gate descriptor
+     * @param num Vector index (0-255)
+     * @param base Address of ISR entry function
+     * @param sel Segment selector (0x08)
+     * @param flags Gate attribute flags (0x8E)
+     */
+    static void set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);
 };
 
 } // namespace x86_64
 } // namespace arch
 } // namespace nebula
+
+extern "C" {
+    void idt_init();
+}
 
 #endif // NEBULA_ARCH_X86_64_IDT_HPP

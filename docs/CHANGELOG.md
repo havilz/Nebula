@@ -4,6 +4,99 @@ Dokumen ini mencatat seluruh riwayat perubahan, keputusan arsitektur teknis, dia
 
 ---
 
+## [Task 2] - GDT, IDT, 8259 PIC Remapping, & ISR Interrupt Handling
+
+### Ringkasan Tujuan
+Membangun fondasi manajemen segmen memori (GDT) dan subsistem penanganan interupsi CPU/Hardware (IDT 256 gates, 8259 PIC Remapping, ISR Exception Stubs, dan IRQ Dispatcher C++), serta mengaktifkan interupsi hardware secara aman via `sti`.
+
+---
+
+### Perubahan & Komponen Utama yang Dibuat
+
+#### 1. Subsystem GDT (`include/kernel/arch/x86_64/gdt.hpp` & `kernel/arch/x86_64/gdt/gdt.cpp`)
+- **Struktur Descriptor**: Struct `GDTEntry` (8 byte) & `GDTPointer` (6 byte `limit` & `base`).
+- **Peta Segmen**:
+  - `0x00`: Null Descriptor
+  - `0x08`: Kernel Code Segment (Ring 0, Executable/Read, 4GB Limit)
+  - `0x10`: Kernel Data Segment (Ring 0, Read/Write, 4GB Limit)
+  - `0x18`: User Code Segment (Ring 3, Executable/Read, 4GB Limit)
+  - `0x20`: User Data Segment (Ring 3, Read/Write, 4GB Limit)
+- **Rutin `gdt_flush` Inline Assembly**: Memuat GDTR (`lgdt`), melakukan *Far Jump* `ljmp $0x08, $1f` untuk reload `CS` selector, dan mengisi `DS, ES, FS, GS, SS` dengan `0x10`.
+
+#### 2. Subsystem IDT (`include/kernel/arch/x86_64/idt.hpp` & `kernel/arch/x86_64/idt/idt.cpp`)
+- **Struktur Gate**: Struct `IDTEntry` (8 byte: `base_low`, selector `0x08`, `always0`, flags `0x8E`, `base_high`) & `IDTPointer` (6 byte).
+- **Inisialisasi 256 Entry**: Memasang 256 gate handler dan memuat register IDTR CPU via `asm volatile ("lidt %0")`.
+
+#### 3. Subsystem 8259 PIC Remapping (`include/kernel/arch/x86_64/pic.hpp` & `kernel/arch/x86_64/interrupts/pic.cpp`)
+- **Remapping Vector**: Menggeser IRQ hardware 0-15 dari offset default konflik 0-15 ke offset **32-47** (Master PIC IRQ 0-7 -> Vektor 32-39, Slave PIC IRQ 8-15 -> Vektor 40-47).
+- **Komunikasi Port I/O**: Mengirimkan ICW1-ICW4 ke Master (`0x20`/`0x21`) dan Slave (`0xA0`/`0xA1`) dengan jeda `io_wait()` pada port `0x80`.
+- **EOI Signalling**: Implementasi `PIC::send_eoi(irq)` untuk menutup interupsi.
+
+#### 4. ISR Assembly Stubs & C++ Dispatcher (`kernel/arch/x86_64/interrupts/isr.asm`, `include/kernel/arch/x86_64/interrupts.hpp`, `kernel/arch/x86_64/interrupts/interrupts.cpp`)
+- **32 Exception Stubs**: Macro `ISR_NOERRCODE` & `ISR_ERRCODE` memicu `isr0`..`isr31`.
+- **16 IRQ Stubs**: Macro `IRQ` memicu `irq0`..`irq15` (vektor 32-47).
+- **Common Stubs**: `isr_common_stub` & `irq_common_stub` melakukan `pusha`, memuat `DS=0x10`, memanggil C++ `isr_handler()` / `irq_handler()`, `popa`, dan `iret`.
+- **Software Interrupt Test**: Memasang callback `breakpoint_handler` pada Vektor 3 (`INT 3`) dan memunculkan notifikasi sukses pada VGA Console & Serial COM1.
+
+#### 5. Integrasi Kernel Main (`kernel/core/kernel.cpp`) & Build System (`Makefile`)
+- Merangkai urutan inisialisasi: `Serial::init()` -> `GDT::init()` -> `IDT::init()` -> `PIC::remap(32, 40)` -> `interrupts_init()` -> **`asm volatile ("sti")`** -> Test `asm volatile ("int $3")`.
+- Memperbarui `Makefile` untuk merakit `isr.o` dan menghubungkannya ke `nebula.elf`.
+
+---
+
+### Catatan Diagnostik & Pemecahan Masalah Teknis
+
+1. **Bug Bitwise OR Granularity pada `set_gate`**:
+   - *Penyebab*: `m_gdt[num].granularity |= gran` menyimpan bit sampah jika array `m_gdt` belum dibersihkan.
+   - *Solusi*: Mengatur `granularity` via penetapan langsung (`=`) dan mengosongkan seluruh array GDT di awal `GDT::init()`.
+
+2. **Pergeseran Symbol Offset `gdt_flush` Assembly (+4 Bytes)**:
+   - *Penyebab*: Fungsi assembly terpisah `gdt_flush` di `boot.asm` mengalami pergeseran `+4` byte addend saat dipanggil dari file C++ yang dikonversi dari PE ke ELF, melompati instruksi `mov eax, [esp+4]`.
+   - *Solusi*: Memindahkan `gdt_flush` menjadi *inline assembly* di dalam `gdt.cpp` sehingga dieksekusi secara langsung tanpa pergeseran relokasi.
+
+---
+
+### Hasil Akhir Eksekusi (Verification Status)
+
+- **Mode GUI (`mingw32-make run`)**: Jendela QEMU menampilkan layar biru dengan spanduk spanduk konsol Phase 2:
+  ```text
+  [OK] GDT 32-bit Reloaded (Code:0x08, Data:0x10)
+  [OK] IDT 256 Gates & LIDT Loaded
+  [OK] 8259 PIC Remapped (IRQ 0-15 -> Vectors 32-47)
+  [OK] CPU Interrupts Enabled (STI Active)
+  [OK] INT 3 Software Interrupt Handler Triggered
+  Phase 2 Initialization Complete!
+  ```
+- **Mode Serial Terminal**: Port COM1 memancarkan log real-time:
+  ```text
+  [KERNEL] Entered kernel_main()
+  [GDT] Initializing 32-bit GDT & reloading segment registers...
+  [GDT] GDT loaded successfully (CS=0x08, DS=0x10)!
+  [IDT] Initializing IDT 256 gates...
+  [IDT] IDT loaded successfully via LIDT!
+  [PIC] Remapping 8259 PIC (Master: 32, Slave: 40)...
+  [PIC] PIC remapped successfully!
+  [ISR] Registering CPU Exception & IRQ stubs...
+  [ISR] ISR handlers registered successfully!
+  [CPU] Enabling interrupts via STI...
+  [CPU] Interrupts enabled safely!
+  [KERNEL] Clearing VGA screen with blue background...
+  [KERNEL] Screen cleared successfully!
+  [KERNEL] Writing Phase 2 VGA banner...
+  [TEST] Testing software interrupt INT 3...
+  [ISR] INT 3 Breakpoint Exception Handler Intercepted Successfully!
+  [KERNEL] Phase 2 initialization complete! Entering infinite loop...
+  ```
+
+---
+
+### Status Pengembangan Saat Ini:
+- **Phase 1 (Multiboot 1 Kernel & VGA Driver)**: SELESAI (100%)
+- **Phase 2 (GDT, IDT, PIC & ISR Handling)**: SELESAI (100%)
+- **Phase 3 (Manajemen Memori - PMM & VMM)**: Siap Dilanjutkan
+
+---
+
 ## [Task 1] - Barebones Kernel & Multiboot 1 Verification
 
 ### Ringkasan Tujuan
@@ -90,9 +183,3 @@ Membuat kernel 32-bit x86 paling mendasar (*barebones*) yang mematuhi **Spesifik
   [KERNEL] Phase 1 initialization complete! Entering infinite loop...
   ```
 - **Mode Visual Debugger (`F5` di VS Code)**: GDB terhubung langsung ke QEMU port 1234, breakpoint `_start` dan `kernel_main` berfungsi 100% lancar.
-
----
-
-### Status Pengembangan Saat Ini:
-- **Phase 1 (Multiboot 1 Kernel & VGA Driver)**: SELESAI (100%)
-- **Phase 2 (GDT - Global Descriptor Table)**: Siap Dilanjutkan

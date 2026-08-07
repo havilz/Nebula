@@ -10,7 +10,7 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 [X] Fase 0: Setup Lingkungan & Arsitektur Project (Selesai 100%)
 [X] Fase 1: Bootloader & Bare-Metal Kernel Execution (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 2: GDT, IDT, & Interupsi CPU (ISR & PIC) (Selesai 100% - Terverifikasi di QEMU)
-[X] Fase 3: Manajemen Memori (PMM Bitmap, VMM Paging, Heap) (Selesai 100% - Terverifikasi di QEMU)
+[ ] Fase 3: Manajemen Memori (PMM Bitmap, VMM Paging, Heap)
 [ ] Fase 4: Driver Hardware Input & Timer (PIT, PS/2 Keyboard, Serial COM1)
 [ ] Fase 5: Multitasking & Scheduler (PCB, TCB, Context Switching)
 [ ] Fase 6: Virtual File System (VFS) & System Call (Ring 3 Userland)
@@ -39,10 +39,10 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 - [x] Pengujian kompilasi & eksekusi pertama di QEMU Emulator (Sukses 100%).
 
 ### Fase 2: GDT, IDT, & Penanganan Interupsi
-- [ ] Penyiapan GDT 64-bit Reload & Task State Segment (TSS) (`include/kernel/arch/x86_64/gdt.hpp`, `kernel/arch/x86_64/gdt/gdt.cpp`).
-- [ ] Penyiapan Interrupt Descriptor Table (IDT 256 Vector) (`include/kernel/arch/x86_64/idt.hpp`, `kernel/arch/x86_64/idt/idt.cpp`).
-- [ ] Assembly ISR Stubs & Dispatcher Interupsi C++ (`kernel/arch/x86_64/interrupts/isr.asm`, `include/kernel/arch/x86_64/interrupts.hpp`, `kernel/arch/x86_64/interrupts/interrupts.cpp`).
-- [ ] Remapping 8259 PIC (IRQ 0-15 ke Vector IDT 32-47) (`include/kernel/arch/x86_64/pic.hpp`, `kernel/arch/x86_64/interrupts/pic.cpp`).
+- [x] Penyiapan GDT Reload (`include/kernel/arch/x86_64/gdt.hpp`, `kernel/arch/x86_64/gdt/gdt.cpp`).
+- [x] Penyiapan Interrupt Descriptor Table (IDT 256 Vector) (`include/kernel/arch/x86_64/idt.hpp`, `kernel/arch/x86_64/idt/idt.cpp`).
+- [x] Assembly ISR Stubs & Dispatcher Interupsi C++ (`kernel/arch/x86_64/interrupts/isr.asm`, `include/kernel/arch/x86_64/interrupts.hpp`, `kernel/arch/x86_64/interrupts/interrupts.cpp`).
+- [x] Remapping 8259 PIC (IRQ 0-15 ke Vector IDT 32-47) (`include/kernel/arch/x86_64/pic.hpp`, `kernel/arch/x86_64/interrupts/pic.cpp`).
 
 ### Fase 3: Manajemen Memori
 - [ ] Physical Memory Manager (PMM) berbasis Bitmap (`include/kernel/memory/pmm.hpp`, `kernel/memory/pmm.cpp`).

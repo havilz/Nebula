@@ -54,6 +54,9 @@ Dokumen ini berisi aturan wajib (Strict Coding Standards) dalam pengembangan **N
    * Saat mengubah struktur data kritis kernel (seperti antrean scheduler atau daftar memori bebas), interupsi hardware wajib dimatikan sementara (`cli`) dan diaktifkan kembali (`sti`), atau menggunakan Spinlock.
 2. **ISR (Interrupt Service Routine) Harus Singkat**:
    * Kode di dalam penangan interupsi (ISR) harus dieksekusi secepat mungkin. Tugas berat harus didelegasikan ke Deferred Procedure Call (DPC) / Tasklet.
+3. **Prinsip Keamanan Interupsi Awal (Aturan Strict CLI/STI)**:
+   * **DILARANG MENGAKTIFKAN `sti`** sebelum IDT (Interrupt Descriptor Table) selesai diinisialisasi secara valid via `lidt`, PIC 8259 diremap, dan seluruh gate descriptor ISR kritis terpasang.
+   * Instruksi `cli` **WAJIB** dieksekusi sebagai instruksi paling pertama pada `_start` (`boot/x86_64/boot.asm`) sesuai spesifikasi Multiboot 1. Mengaktifkan `sti` secara prematur sebelum IDT valid akan menyebabkan interupsi hardware (seperti IRQ0/Timer) melompat ke alamat descriptor acak/sampah yang memicu Triple Fault atau kerusakan register CPU.
 
 ---
 
