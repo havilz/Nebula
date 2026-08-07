@@ -11,7 +11,7 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 [X] Fase 1: Bootloader & Bare-Metal Kernel Execution (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 2: GDT, IDT, & Interupsi CPU (ISR & PIC) (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 3: Manajemen Memori (PMM Bitmap, VMM Paging, Heap) (Selesai 100% - Terverifikasi di QEMU)
-[ ] Fase 4: Driver Hardware Input & Timer (PIT, PS/2 Keyboard, Serial COM1)
+[X] Fase 4: Driver Hardware Input & Timer (PIT, PS/2 Keyboard, Serial) (Selesai 100% - Terverifikasi di QEMU)
 [ ] Fase 5: Multitasking & Scheduler (PCB, TCB, Context Switching)
 [ ] Fase 6: Virtual File System (VFS) & System Call (Ring 3 Userland)
 [ ] Fase 7: VBE Framebuffer & Antarmuka Grafis (GUI Window Manager)
@@ -51,11 +51,13 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 - [x] Overloading Operator Global C++ `new` dan `delete` (`kernel/memory/kheap.cpp`).
 
 ### Fase 4: Driver Hardware Input & Timer
-- [ ] Driver PIT Timer (100 Hz Tick Interrupt IRQ 0).
-- [ ] Driver PS/2 Keyboard (IRQ 1 Scancode Ring Buffer).
-- [ ] Driver Serial Port COM1 (UART 16550) untuk Log Debugging.
+- [x] Driver PIT Timer 8254 (100 Hz Tick Interrupt IRQ 0) (`include/kernel/drivers/pit.hpp`, `kernel/drivers/timer/pit.cpp`).
+- [x] Driver PS/2 Keyboard (IRQ 1 Scancode Ring Buffer & US QWERTY Table) (`include/kernel/drivers/keyboard.hpp`, `kernel/drivers/input/keyboard.cpp`).
+- [x] Driver Port I/O Abstraksi Terpusat (`include/kernel/arch/x86_64/io.hpp`).
+- [x] Interactive Shell Echo & Real-time Formatting (`kernel/core/kernel.cpp`).
 
 ### Fase 5: Proses & Scheduler Preemptif
+- [ ] Modul Transisi 64-Bit Long Mode (PML4 Paging 4-Level & EFER.LME).
 - [ ] Struktur Data Process Control Block (PCB) & Thread Control Block (TCB).
 - [ ] Penukaran Konteks CPU Assembly (`asm_context_switch`).
 - [ ] Algoritma Preemptive Round-Robin Scheduler.

@@ -5,21 +5,13 @@
  */
 
 #include "../../../include/kernel/drivers/serial.hpp"
+#include "../../../include/kernel/arch/x86_64/io.hpp"
 
 namespace nebula {
 namespace drivers {
 
-static inline void outb(uint16_t port, uint8_t val) {
-    asm volatile ("outb %0, %1" : : "a"(val), "d"(port));
-}
-
-static inline uint8_t inb(uint16_t port) {
-    uint8_t ret;
-    asm volatile ("inb %1, %0" : "=a"(ret) : "d"(port));
-    return ret;
-}
-
 void Serial::init() {
+    using namespace nebula::arch::x86_64;
     outb(COM1_PORT + 1, 0x00); // Disable interrupts
     outb(COM1_PORT + 3, 0x80); // Enable DLAB (set divisor)
     outb(COM1_PORT + 0, 0x03); // Set divisor to 3 (38400 baud)
@@ -30,6 +22,7 @@ void Serial::init() {
 }
 
 void Serial::write_char(char c) {
+    using namespace nebula::arch::x86_64;
     uint8_t status;
     size_t timeout = 10000;
     do {

@@ -4,6 +4,78 @@ Dokumen ini mencatat seluruh riwayat perubahan, keputusan arsitektur teknis, dia
 
 ---
 
+## [Task 4] - Driver Hardware Input & Timer (PIT 100Hz, PS/2 Keyboard, & Interactive Shell Echo)
+
+### Ringkasan Tujuan
+Membangun driver pewaktu hardware PIT 8254 (IRQ 0 / 100 Hz), driver PS/2 Keyboard dengan antrean Ring Buffer (IRQ 1 / Scancode Set 1 US QWERTY), modul port I/O terpusat (`io.hpp`), serta membuat shell interaktif real-time di VGA Console & Serial COM1.
+
+---
+
+### Perubahan & Komponen Utama yang Dibuat
+
+#### 1. Modul Port I/O Terpusat (`include/kernel/arch/x86_64/io.hpp`)
+- **Fungsi Port I/O**: `inb(port)`, `outb(port, val)`, dan `io_wait()` terpusat di namespace `nebula::arch::x86_64` untuk menghindari duplikasi definisi fungsi pada kompiler C++.
+
+#### 2. Driver PIT Timer (`include/kernel/drivers/pit.hpp` & `kernel/drivers/timer/pit.cpp`)
+- **Konfigurasi Channel 0**: Mengonfigurasi divisor frekuensi 100 Hz (10 ms per tick) pada Port `0x40` & `0x43`.
+- **System Uptime & Delay**: `PIT::get_ticks()` untuk menghitung uptime sistem dan `PIT::sleep_ms(ms)` untuk menunda eksekusi thread tanpa *overheating*.
+- **Integrasi IRQ 0**: Mendaftarkan callback `PIT::handle_interrupt` pada Vektor 32 IDT.
+
+#### 3. Driver PS/2 Keyboard & Ring Buffer (`include/kernel/drivers/keyboard.hpp` & `kernel/drivers/input/keyboard.cpp`)
+- **Penerjemah Scancode**: Mengonversi Scancode Set 1 dari Port `0x60` ke karakter ASCII (US QWERTY).
+- **Pengelola Tombol Pengubah**: Pelacakan status *Shift*, *Caps Lock*, *Ctrl*, dan *Alt*.
+- **Circular Ring Buffer**: Queue 256 byte (`m_buffer`) agar tidak ada tombol yang hilang/terlewat.
+- **Integrasi IRQ 1**: Mendaftarkan callback `Keyboard::handle_interrupt` pada Vektor 33 IDT.
+
+#### 4. Interactive Shell Echo di Kernel Main (`kernel/core/kernel.cpp`)
+- Menginisialisasi `PIT::init(100)` dan `Keyboard::init()`.
+- Menjalankan loop interaktif pada `kernel_main()` yang membaca ketikan keyboard (`Keyboard::get_char()`) dan mencetaknya secara *real-time* ke layar VGA Console (`0xB8000`) serta Log Serial COM1 (`0x3F8`).
+
+---
+
+### Catatan Diagnostik & Pemecahan Masalah Teknis
+
+1. **Error Linker `__udivdi3` pada Perhitungan Delay 64-bit**:
+   - *Penyebab*: Operasi pembagian `uint64_t / 1000` pada mode 32-bit memicu kompilator memanggil fungsi library `__udivdi3` yang tidak ada di lingkungan *freestanding*.
+   - *Solusi*: Menggunakan operasi matematika 32-bit `uint32_t ticks_to_wait = (milliseconds * m_frequency) / 1000` pada `PIT::sleep_ms()`.
+
+2. **Redefinisi inline function `inb` & `outb`**:
+   - *Penyebab*: Definisi `static inline inb/outb` independen di setiap file driver memicu redefinition error saat seluruh file C++ di-include dalam satu *translation unit*.
+   - *Solusi*: Membuat header terpusat [include/kernel/arch/x86_64/io.hpp](file:///c:/project/Nebula/include/kernel/arch/x86_64/io.hpp).
+
+---
+
+### Hasil Akhir Eksekusi (Verification Status)
+
+- **Mode GUI (`mingw32-make run`)**: Jendela QEMU menampilkan layar konsol interaktif Phase 4:
+  ```text
+  [OK] PIT 8254 Timer Initialized (100 Hz / IRQ 0)
+  [OK] PS/2 Keyboard Driver Initialized (IRQ 1)
+  [OK] Interactive Shell Ready - Type on Keyboard!
+  nebula> _
+  ```
+- **Mode Serial Terminal**: Port COM1 memancarkan log real-time:
+  ```text
+  [PIT] Initializing 8254 Timer at 100 Hz (IRQ 0 / Vector 32)...
+  [KEYBOARD] Initializing PS/2 Keyboard Driver (IRQ 1 / Vector 33)...
+  [CPU] Enabling interrupts via STI...
+  [CPU] Interrupts enabled safely!
+  [KERNEL] Clearing VGA screen with blue background...
+  [KERNEL] Writing Phase 4 VGA banner...
+  [KERNEL] Phase 4 initialization complete! Interactive shell active.
+  ```
+
+---
+
+### Status Pengembangan Saat Ini:
+- **Phase 1 (Multiboot 1 Kernel & VGA Driver)**: SELESAI (100%)
+- **Phase 2 (GDT, IDT, PIC & ISR Handling)**: SELESAI (100%)
+- **Phase 3 (Manajemen Memori - PMM, VMM Paging, & Heap)**: SELESAI (100%)
+- **Phase 4 (Driver Hardware Input & Timer - PIT, PS/2, Serial)**: SELESAI (100%)
+- **Phase 5 (Transisi 64-Bit, Multitasking & Scheduler)**: Siap Dilanjutkan
+
+---
+
 ## [Task 3] - Physical Memory Manager (PMM), Virtual Memory (VMM Paging), & Kernel Heap Allocator
 
 ### Ringkasan Tujuan
@@ -75,14 +147,6 @@ Membangun subsistem manajemen memori lengkap: Physical Memory Manager (PMM Bitma
   [TEST] delete obj Freed Successfully!
   [KERNEL] Phase 3 initialization complete! Entering infinite loop...
   ```
-
----
-
-### Status Pengembangan Saat Ini:
-- **Phase 1 (Multiboot 1 Kernel & VGA Driver)**: SELESAI (100%)
-- **Phase 2 (GDT, IDT, PIC & ISR Handling)**: SELESAI (100%)
-- **Phase 3 (Manajemen Memori - PMM, VMM Paging, & Heap)**: SELESAI (100%)
-- **Phase 4 (Driver Hardware Input & Timer - PIT, PS/2, Serial)**: Siap Dilanjutkan
 
 ---
 
