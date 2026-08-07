@@ -4,13 +4,9 @@ SECTIONS
 {
     . = 0x100000;
 
-    .multiboot :
-    {
-        KEEP(*(.multiboot))
-    }
-
     .text :
     {
+        KEEP(*(.multiboot))
         *(.text*)
         *(.rodata*)
         *(.rdata*)

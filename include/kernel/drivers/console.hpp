@@ -4,6 +4,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+extern "C" {
+    void vga_clear(uint8_t bg);
+    void vga_write_at(size_t x, size_t y, const char* str, uint8_t fg, uint8_t bg);
+}
+
 namespace nebula {
 namespace drivers {
 
@@ -25,11 +30,6 @@ enum VGAColor : uint8_t {
     COLOR_YELLOW = 14,
     COLOR_WHITE = 15,
 };
-
-extern "C" {
-    void vga_clear(uint8_t bg);
-    void vga_write_at(size_t x, size_t y, const char* str, uint8_t fg, uint8_t bg);
-}
 
 class VGAConsole {
 public:

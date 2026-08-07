@@ -17,15 +17,19 @@ multiboot_header:
     dd MB_FLAGS
     dd MB_CHECKSUM
 
-section .data
+section .bss
 align 16
 stack_bottom:
-    times 16384 db 0 ; 16 kib stack memory
+    resb 16384 ; 16 kib stack memory
 stack_top:
 
 section .text
 _start:
+    cli                 ; disable interrupts immediately - IF state is undefined per Multiboot spec
     mov esp, stack_top
+    and esp, -16        ; Align stack to 16-byte boundary for System V ABI
+    sub esp, 12         ; 12 bytes padding so ESP + return address (4) is 16-byte aligned
+
     call kernel_main
 
 .hang:

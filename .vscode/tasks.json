@@ -1,0 +1,49 @@
+{
+    "version": "2.0.0",
+    "options": {
+        "env": {
+            "PATH": "D:\\msys64\\ucrt64\\bin;D:\\msys64\\usr\\bin;${env:PATH}"
+        }
+    },
+    "tasks": [
+        {
+            "label": "nebula: build (debug)",
+            "type": "shell",
+            "command": "mingw32-make",
+            "args": [
+                "debug"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "nebula: start qemu (gdbserver)",
+            "type": "shell",
+            "command": "mingw32-make",
+            "args": [
+                "qemu-debug"
+            ],
+            "dependsOn": [
+                "nebula: build (debug)"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": ".*",
+                    "file": 1,
+                    "location": 2,
+                    "message": 3
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*",
+                    "endsPattern": ".*"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        }
+    ]
+}

@@ -1,0 +1,44 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Nebula OS: Debug (QEMU + GDB)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build_debug/nebula.elf",
+            "miDebuggerServerAddress": "localhost:1234",
+            "miDebuggerPath": "D:/msys64/ucrt64/bin/gdb.exe",
+            "MIMode": "gdb",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "nebula: start qemu (gdbserver)",
+            "stopAtEntry": false,
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing untuk struct/class C++",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set arsitektur ke i386",
+                    "text": "set architecture i386",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Break di _start (entry point kernel)",
+                    "text": "break _start",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Break juga di kernel_main biar gampang lompat ke sana",
+                    "text": "break kernel_main",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Lanjutkan eksekusi sampai breakpoint pertama kena",
+                    "text": "continue",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}
