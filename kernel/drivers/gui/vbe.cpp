@@ -1,12 +1,13 @@
 /**
  * @file vbe.cpp
- * @brief VESA VBE Linear Framebuffer Driver implementation for Nebula OS
+ * @brief VESA VBE & Bochs BGA Linear Framebuffer Driver implementation for Nebula OS
  * @author Nebula OS Team
  */
 
 #include "../../../include/kernel/drivers/vbe.hpp"
 #include "../../../include/kernel/drivers/serial.hpp"
 #include "../../../include/kernel/memory/heap.hpp"
+#include "../../../include/kernel/arch/x86_64/io.hpp"
 
 namespace nebula {
 namespace drivers {
@@ -19,27 +20,50 @@ size_t VBE::m_pitch = 800 * 4;
 size_t VBE::m_bpp = 32;
 bool VBE::m_initialized = false;
 
-// Static fallback memory for VBE Framebuffer
-static uint32_t fallback_framebuffer[800 * 600] __attribute__((aligned(4096)));
+// Static fallback backbuffer in kernel RAM
 static uint32_t fallback_backbuffer[800 * 600] __attribute__((aligned(4096)));
 
+void VBE::bga_write(uint16_t index, uint16_t data) {
+    nebula::arch::x86_64::outw(VBE_DISPI_IOPORT_INDEX, index);
+    nebula::arch::x86_64::outw(VBE_DISPI_IOPORT_DATA, data);
+}
+
+uint16_t VBE::bga_read(uint16_t index) {
+    nebula::arch::x86_64::outw(VBE_DISPI_IOPORT_INDEX, index);
+    return nebula::arch::x86_64::inw(VBE_DISPI_IOPORT_DATA);
+}
+
+void VBE::bga_set_video_mode(uint16_t width, uint16_t height, uint16_t bpp) {
+    bga_write(VBE_DISPI_INDEX_ENABLE, VBE_DISPI_DISABLED);
+    bga_write(VBE_DISPI_INDEX_XRES, width);
+    bga_write(VBE_DISPI_INDEX_YRES, height);
+    bga_write(VBE_DISPI_INDEX_BPP, bpp);
+    bga_write(VBE_DISPI_INDEX_ENABLE, VBE_DISPI_ENABLED | VBE_DISPI_LFB_ENABLED);
+}
+
 void VBE::init(vbe_mode_info_t* mode_info) {
+    m_width = 800;
+    m_height = 600;
+    m_bpp = 32;
+    m_pitch = m_width * (m_bpp / 8);
+
+    // 1. Program Bochs BGA Hardware Video Mode via Port 0x1CE / 0x1CF
+    uint16_t bga_id = bga_read(VBE_DISPI_INDEX_ID);
+    nebula::drivers::Serial::write_string("[VBE BGA] Detected Bochs BGA Hardware Version: 0x");
+    nebula::drivers::Serial::write_hex32(bga_id);
+    nebula::drivers::Serial::write_string("\n");
+
+    bga_set_video_mode(static_cast<uint16_t>(m_width), static_cast<uint16_t>(m_height), static_cast<uint16_t>(m_bpp));
+
+    // 2. Determine Physical Linear Framebuffer (LFB) Address
     if (mode_info != nullptr && mode_info->framebuffer != 0) {
-        m_width = mode_info->width;
-        m_height = mode_info->height;
-        m_pitch = mode_info->pitch;
-        m_bpp = mode_info->bpp;
         m_framebuffer = reinterpret_cast<uint32_t*>(static_cast<uintptr_t>(mode_info->framebuffer));
     } else {
-        // Fallback software VBE buffer
-        m_width = 800;
-        m_height = 600;
-        m_pitch = 800 * 4;
-        m_bpp = 32;
-        m_framebuffer = fallback_framebuffer;
+        // Standard QEMU BGA Physical Framebuffer Address (0xFD000000 or 0xE0000000)
+        m_framebuffer = reinterpret_cast<uint32_t*>(0xFD000000);
     }
 
-    // Allocate Double Buffering Backbuffer in Kernel Heap or static memory
+    // 3. Allocate Backbuffer in Kernel Heap
     size_t buffer_size = m_width * m_height * sizeof(uint32_t);
     void* heap_buf = nebula::memory::KernelHeap::kmalloc(buffer_size);
     if (heap_buf != nullptr) {
@@ -52,11 +76,9 @@ void VBE::init(vbe_mode_info_t* mode_info) {
     clear(COLOR_BG_DARK);
     swap_buffers();
 
-    nebula::drivers::Serial::write_string("[VBE] Framebuffer Driver Initialized (");
-    nebula::drivers::Serial::write_dec(m_width);
-    nebula::drivers::Serial::write_string("x");
-    nebula::drivers::Serial::write_dec(m_height);
-    nebula::drivers::Serial::write_string(" 32-bit BPP)\n");
+    nebula::drivers::Serial::write_string("[VBE] Linear Framebuffer Connected at 0x");
+    nebula::drivers::Serial::write_hex32(reinterpret_cast<uint32_t>(m_framebuffer));
+    nebula::drivers::Serial::write_string(" (800x600 32-bit BPP)\n");
 }
 
 void VBE::put_pixel(size_t x, size_t y, uint32_t color) {

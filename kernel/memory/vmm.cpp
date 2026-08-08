@@ -16,6 +16,8 @@ page_directory_t* VMM::m_kernel_directory = nullptr;
 
 alignas(4096) static page_directory_t initial_page_directory;
 alignas(4096) static page_table_t initial_page_tables[64]; // 64 Page Tables = 256 MB Identity Mapping
+alignas(4096) static page_table_t bga_page_table1;        // 4 MB Page Table for 0xFD000000
+alignas(4096) static page_table_t bga_page_table2;        // 4 MB Page Table for 0xE0000000
 
 void VMM::switch_page_directory(page_directory_t* dir) {
     m_current_directory = dir;
@@ -81,6 +83,14 @@ void VMM::init() {
 
         m_kernel_directory->tables[t].entry = pt_phys | PAGE_PRESENT | PAGE_WRITABLE;
     }
+
+    // Map Bochs BGA Framebuffer LFB regions (0xFD000000 & 0xE0000000) 4MB each
+    for (size_t p = 0; p < 1024; p++) {
+        bga_page_table1.pages[p].entry = (0xFD000000 + p * PAGE_SIZE) | PAGE_PRESENT | PAGE_WRITABLE;
+        bga_page_table2.pages[p].entry = (0xE0000000 + p * PAGE_SIZE) | PAGE_PRESENT | PAGE_WRITABLE;
+    }
+    m_kernel_directory->tables[0xFD000000 >> 22].entry = reinterpret_cast<uintptr_t>(&bga_page_table1) | PAGE_PRESENT | PAGE_WRITABLE;
+    m_kernel_directory->tables[0xE0000000 >> 22].entry = reinterpret_cast<uintptr_t>(&bga_page_table2) | PAGE_PRESENT | PAGE_WRITABLE;
 
     // Switch to kernel page directory in CR3
     switch_page_directory(m_kernel_directory);

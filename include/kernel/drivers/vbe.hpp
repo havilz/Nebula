@@ -8,6 +8,27 @@ namespace nebula {
 namespace drivers {
 
 /**
+ * @brief Bochs VBE Dispi Interface Constants
+ */
+static const uint16_t VBE_DISPI_IOPORT_INDEX = 0x01CE;
+static const uint16_t VBE_DISPI_IOPORT_DATA  = 0x01CF;
+
+static const uint16_t VBE_DISPI_INDEX_ID          = 0;
+static const uint16_t VBE_DISPI_INDEX_XRES        = 1;
+static const uint16_t VBE_DISPI_INDEX_YRES        = 2;
+static const uint16_t VBE_DISPI_INDEX_BPP         = 3;
+static const uint16_t VBE_DISPI_INDEX_ENABLE      = 4;
+static const uint16_t VBE_DISPI_INDEX_BANK        = 5;
+static const uint16_t VBE_DISPI_INDEX_VIRT_WIDTH  = 6;
+static const uint16_t VBE_DISPI_INDEX_VIRT_HEIGHT = 7;
+static const uint16_t VBE_DISPI_INDEX_X_OFFSET    = 8;
+static const uint16_t VBE_DISPI_INDEX_Y_OFFSET    = 9;
+
+static const uint16_t VBE_DISPI_DISABLED          = 0x00;
+static const uint16_t VBE_DISPI_ENABLED           = 0x01;
+static const uint16_t VBE_DISPI_LFB_ENABLED       = 0x40;
+
+/**
  * @brief VESA VBE Mode Info Structure
  */
 struct __attribute__((packed)) vbe_mode_info_t {
@@ -66,7 +87,7 @@ static const uint32_t COLOR_BTN_CLOSE   = 0xEF4444; // Red Close Btn
 static const uint32_t COLOR_BTN_MIN     = 0xF59E0B; // Amber Min Btn
 
 /**
- * @brief VESA VBE Linear Framebuffer Driver Class
+ * @brief VESA VBE & Bochs BGA Linear Framebuffer Driver Class
  */
 class VBE {
 private:
@@ -80,7 +101,22 @@ private:
 
 public:
     /**
-     * @brief Initialize VBE Framebuffer driver and allocate Backbuffer
+     * @brief Write 16-bit word to Bochs BGA I/O Port
+     */
+    static void bga_write(uint16_t index, uint16_t data);
+
+    /**
+     * @brief Read 16-bit word from Bochs BGA I/O Port
+     */
+    static uint16_t bga_read(uint16_t index);
+
+    /**
+     * @brief Configure Bochs BGA hardware video mode (width, height, bpp)
+     */
+    static void bga_set_video_mode(uint16_t width, uint16_t height, uint16_t bpp);
+
+    /**
+     * @brief Initialize VBE Framebuffer driver, Bochs BGA, and Backbuffer
      */
     static void init(vbe_mode_info_t* mode_info);
 
