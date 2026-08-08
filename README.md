@@ -1,10 +1,10 @@
-# 🌌 Nebula OS
+# Nebula OS
 
 **Nebula OS** adalah sistem operasi *bare-metal* buatan sendiri (*custom operating system*) yang dirancang dari nol (*from scratch*) menggunakan **C++20 Freestanding**, **Assembly (x86_64)**, dan **GNU Build System**. Proyek ini bertujuan untuk membangun kernel OS yang modular, cepat, aman, dan kaya fitur dari tingkat bootloader hingga antarmuka grafis (VBE GUI).
 
 ---
 
-## 🏗️ 1. Fitur Utama & Spesifikasi Arsitektur
+## 1. Fitur Utama & Spesifikasi Arsitektur
 
 - **Architecture Target**: x86_64 Long Mode (64-bit) dengan kompatibilitas Multiboot 1 / Multiboot 2.
 - **Kernel Design**: Hybrid-Modular Architecture (Ring 0 Kernel Space & Ring 3 User Space).
@@ -15,7 +15,7 @@
 
 ---
 
-## 📂 2. Struktur Direktori Proyek
+## 2. Struktur Direktori Proyek
 
 ```text
 Nebula/
@@ -77,7 +77,7 @@ Untuk mengompilasi dan menguji **Nebula OS**, pastikan toolchain berikut terpasa
 
 ---
 
-## 🚀 4. Cara Pengompilan & Eksekusi
+## 4. Cara Pengompilan & Eksekusi
 
 ### Membangun & Menjalankan Release Mode (QEMU GUI):
 ```bash
