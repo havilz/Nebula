@@ -94,7 +94,7 @@ Atau cukup tekan **`F5`** di VS Code untuk memulai sesi visual debugging terinte
 
 ---
 
-## 📜 5. Dokumentasi & Aturan Kontribusi
+## 5. Dokumentasi & Aturan Kontribusi
 - **Roadmap & Progress**: [docs/task.md](file:///c:/project/Nebula/docs/task.md)
 - **Changelog & Technical Logs**: [docs/CHANGELOG.md](file:///c:/project/Nebula/docs/CHANGELOG.md)
 - **Coding Standards & Rules**: [docs/RULES.md](file:///c:/project/Nebula/docs/RULES.md)

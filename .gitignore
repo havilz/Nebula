@@ -1,0 +1,26 @@
+# Build Output & Artifacts
+build/
+build_debug/
+*.o
+*.elf
+*.bin
+*.log
+kernel_debug.log
+
+# Ignored Documentation Files
+docs/CHANGELOG.md
+docs/RULES.md
+docs/task.md
+
+# IDE & Editor Settings
+.vscode/
+.idea/
+.vs/
+*.suo
+*.user
+*.userosv
+*.sln.docstates
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
