@@ -4,6 +4,11 @@
  * @author Nebula OS Team
  */
 
+#include <bsd/net/arp.hpp>
+#include <bsd/net/ethernet.hpp>
+#include <bsd/net/icmp.hpp>
+#include <bsd/net/ipv4.hpp>
+#include <bsd/net/socket.hpp>
 #include <bsd/sys/bundle.hpp>
 #include <bsd/sys/elf.hpp>
 #include <bsd/sys/syscall.hpp>
@@ -17,6 +22,7 @@
 #include <iokit/input/keyboard.hpp>
 #include <iokit/input/mouse.hpp>
 #include <iokit/iodevice.hpp>
+#include <iokit/net/e1000.hpp>
 #include <iokit/serial/serial.hpp>
 #include <iokit/storage/ata.hpp>
 #include <iokit/storage/mbr.hpp>
@@ -37,10 +43,16 @@
 #include <san/sanitizer.hpp>
 #include <security/security.hpp>
 
+#include "../bsd/net/arp.cpp"
+#include "../bsd/net/ethernet.cpp"
+#include "../bsd/net/icmp.cpp"
+#include "../bsd/net/ipv4.cpp"
+#include "../bsd/net/socket.cpp"
 #include "../bsd/sys/elf.cpp"
 #include "../bsd/sys/syscall.cpp"
 #include "../bsd/vfs/fat32.cpp"
 #include "../bsd/vfs/initrd.cpp"
+#include "../iokit/net/e1000.cpp"
 #include "../bsd/vfs/vfs.cpp"
 #include "../gui/font.cpp"
 #include "../gui/wm.cpp"
@@ -184,6 +196,14 @@ extern "C" void kernel_main(uint32_t magic, multiboot_info_t *mb_info) {
     nebula::drivers::MBRParser::parse(&ata_drive, &fat32_lba);
     nebula::fs::FAT32::mount(&ata_drive, fat32_lba);
   }
+
+  static nebula::drivers::E1000Driver e1000_nic;
+  e1000_nic.init();
+  e1000_nic.start();
+
+  nebula::bsd::net::IPv4::init();
+  nebula::bsd::net::ARP::init();
+  nebula::bsd::net::SocketManager::init();
 
   Syscall::init();
   nebula::drivers::Serial::write_string("[ELF] Executable Binary Loader Subsystem (ELF32/ELF64) Active\n");

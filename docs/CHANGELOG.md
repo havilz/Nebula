@@ -2,6 +2,34 @@
 
 Dokumen ini mencatat seluruh riwayat perubahan, keputusan arsitektur teknis, diagnosa masalah, dan solusi yang diterapkan pada proyek **Nebula OS**. Dokumen ini diperbarui secara berkala setiap kali suatu Fase / Task selesai diimplementasikan.
 
+## [ 12] - Network Driver (Intel E1000) & BSD TCP/IP Protocol Stack
+
+### Ringkasan Tujuan
+Membangun Driver IOKit C++ untuk Kartu Jaringan Gigabit Intel E1000 (PCI MMIO), BSD Network Stack (Ethernet II, ARP, IPv4 `10.0.2.15`, ICMP Ping Response, UDP, TCP), serta BSD Socket API Abstraction.
+
+---
+
+### Perubahan & Komponen Utama yang Dibuat
+
+#### 1. IOKit Intel E1000 PCI Network Controller Driver (`include/iokit/net/e1000.hpp` & `kernel/iokit/net/e1000.cpp`)
+- **IOKit C++ Architecture**: Kelas `E1000Driver` mewarisi `nebula::iokit::IODevice`.
+- **Ring Descriptors Buffer**: Alokasi 32 RX Descriptors (`e1000_rx_desc_t`) dan 32 TX Descriptors (`e1000_tx_desc_t`).
+- **MAC Address & Link Detection**: Ekstraksi alamat fisik MAC 6-byte (`52:54:00:12:34:56`) dan deteksi status link (1000 Mbps Full-Duplex).
+- **Packet Transmission**: Fungsi `send_packet()` dan `receive_packet()`.
+
+#### 2. BSD TCP/IP Protocol Stack (`include/bsd/net/` & `kernel/bsd/net/`)
+- **Ethernet II Layer (`ethernet.hpp`/`ethernet.cpp`)**: Header 14-byte dan pembantu endianness (`htons`, `ntohs`, `htonl`, `ntohl`).
+- **ARP Protocol (`arp.hpp`/`arp.cpp`)**: Penanganan paket resolusi alamat hardware ARP dan tabel pemetaan IP-MAC.
+- **IPv4 Protocol (`ipv4.hpp`/`ipv4.cpp`)**: Parsing header 20-byte, kalkulasi Internet Checksum 16-bit, dan penetapan IP lokal `10.0.2.15`.
+- **ICMP Ping Protocol (`icmp.hpp`/`icmp.cpp`)**: Penanganan ICMP Echo Request (Type 8) dan respons otomatis ICMP Echo Reply (Type 0) untuk mendukung perintah `ping`.
+- **UDP & TCP Protocol (`udp.hpp`, `tcp.hpp`)**: Pemrosesan header port transport layer dan flags TCP (SYN, ACK, FIN).
+- **BSD Socket API (`socket.hpp`/`socket.cpp`)**: Abstraksi `sys_socket()` dan `sys_bind()`.
+
+#### 3. Dokumentasi Modul Terdistribusi (`README.md`)
+- Membuat `include/iokit/net/README.md`, `kernel/iokit/net/README.md`, `include/bsd/net/README.md`, dan `kernel/bsd/net/README.md`.
+
+---
+
 ## [ 10] - ELF Executable Loader, Standard C Library (libnebula), & POSIX Compatibility Layer
 
 ### Ringkasan Tujuan

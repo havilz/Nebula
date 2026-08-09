@@ -24,8 +24,8 @@ Nebula/
 │   └── linker.ld                # Linker script 32-bit ELF
 ├── include/                     # Public Header Files (.hpp)
 │   ├── mach/                    # Mach Microkernel Core Headers (GDT, IDT, PMM, VMM, Scheduler, IPC)
-│   ├── bsd/                     # BSD OS Services Headers (VFS Nodes, Initrd RAM Disk, Syscall INT 0x80)
-│   ├── iokit/                   # IOKit C++ Driver Framework Headers (IODevice, VBE, Mouse, Keyboard)
+│   ├── bsd/                     # BSD OS Services Headers (VFS Nodes, Initrd, Syscall, TCP/IP Stack)
+│   ├── iokit/                   # IOKit C++ Driver Framework Headers (IODevice, VBE, Mouse, Keyboard, E1000)
 │   ├── libkern/                 # Kernel Utility C++ Library (OSObject Base Class, Port I/O)
 │   ├── libsa/                   # Standalone Kernel Infrastructure & Dynamic Kext Module Loader
 │   ├── security/                # Mandatory Access Control (MAC Framework, Credentials ucred_t)
