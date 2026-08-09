@@ -1,7 +1,8 @@
 {
     "C_Cpp.default.includePath": [
         "${workspaceFolder}/include",
-        "${workspaceFolder}/include/**"
+        "${workspaceFolder}/include/**",
+        "${workspaceFolder}/userland/libc/include"
     ],
     "C_Cpp.default.compilerPath": "D:/msys64/ucrt64/bin/g++.exe",
     "C_Cpp.default.cppStandard": "c++20",

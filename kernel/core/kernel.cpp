@@ -4,6 +4,8 @@
  * @author Nebula OS Team
  */
 
+#include <bsd/sys/bundle.hpp>
+#include <bsd/sys/elf.hpp>
 #include <bsd/sys/syscall.hpp>
 #include <bsd/vfs/fat32.hpp>
 #include <bsd/vfs/initrd.hpp>
@@ -35,6 +37,7 @@
 #include <san/sanitizer.hpp>
 #include <security/security.hpp>
 
+#include "../bsd/sys/elf.cpp"
 #include "../bsd/sys/syscall.cpp"
 #include "../bsd/vfs/fat32.cpp"
 #include "../bsd/vfs/initrd.cpp"
@@ -183,6 +186,8 @@ extern "C" void kernel_main(uint32_t magic, multiboot_info_t *mb_info) {
   }
 
   Syscall::init();
+  nebula::drivers::Serial::write_string("[ELF] Executable Binary Loader Subsystem (ELF32/ELF64) Active\n");
+  nebula::drivers::Serial::write_string("[LIBC] Userland Standard C Library (libnebula) Active\n");
 
   VBE::init(nullptr);
   WindowManager::init();

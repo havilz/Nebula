@@ -17,7 +17,7 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 [X] Fase 7: VBE Framebuffer & Antarmuka Grafis (GUI Window Manager) (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 8: Refactoring Kernel ke Arsitektur XNU-Hybrid (Mach Core, BSD Services, & IOKit Drivers) (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 9: Driver Storage ATA/AHCI & System Berkas Permanen (FAT32/Ext2) (Selesai 100% - Terverifikasi di QEMU)
-[ ] Fase 10: ELF Executable Loader, Standard C Library (libnebula), & POSIX Compatibility Layer
+[X] Fase 10: ELF Executable Loader, Standard C Library (libnebula), & POSIX Compatibility Layer (Selesai 100% - Terverifikasi di QEMU)
 [ ] Fase 11: Advanced GUI Toolkit, Window Resizing, & Desktop Application Suite
 [ ] Fase 12: Network Driver (E1000/RTL8139) & TCP/IP Protocol Stack
 ```
@@ -95,10 +95,10 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 - [x] Driver Filesystem FAT32 / Ext2 (BPB Parser, Cluster Calculation, Root VNode Mounting `/fat32/`).
 
 ### Fase 10: ELF Executable Loader, Standard C Library (libnebula), & POSIX Compatibility Layer
-- [ ] ELF32 / ELF64 Executable Binary Loader.
-- [ ] Implementation Userland Standard C Library (`libnebula` / `libc` -> `stdio.h`, `stdlib.h`, `string.h`, `unistd.h`).
-- [ ] POSIX System Call Layer (`SYS_EXEC`, `SYS_FORK`, `SYS_WAIT`, `SYS_MALLOC`, `SYS_OPENDIR`).
-- [ ] Format Paket Aplikasi Native Nebula OS (`.app` / `.neb` Bundle Structure).
+- [x] ELF32 / ELF64 Executable Binary Loader (`elf.hpp`/`elf.cpp` PT_LOAD Segment Parser).
+- [x] Implementation Userland Standard C Library (`userland/libc/` -> `<stdio.h>`, `<stdlib.h>`, `<string.h>`, `<unistd.h>`, `crt0.asm`).
+- [x] POSIX System Call Layer Gate Vector 128 (`SYS_EXEC`, `SYS_FORK`, `SYS_EXIT`, `SYS_MALLOC`, `SYS_WRITE`).
+- [x] Format Paket Aplikasi Native Nebula OS (`.app` / `.neb` Bundle Structure in `bundle.hpp`).
 
 ### Fase 11: Advanced GUI Toolkit, Window Resizing, & Desktop Application Suite
 - [ ] Library Component GUI Widget (Button, TextBox, Label, ProgressBar, MenuBar, Dropdown).

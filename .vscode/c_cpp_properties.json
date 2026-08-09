@@ -5,12 +5,14 @@
             "includePath": [
                 "${workspaceFolder}/include",
                 "${workspaceFolder}/include/**",
-                "${workspaceFolder}/kernel"
+                "${workspaceFolder}/kernel",
+                "${workspaceFolder}/userland/libc/include"
             ],
             "compilerArgs": [
                 "-m32",
                 "-ffreestanding",
-                "-I${workspaceFolder}/include"
+                "-I${workspaceFolder}/include",
+                "-I${workspaceFolder}/userland/libc/include"
             ],
             "defines": [
                 "_DEBUG",

@@ -43,6 +43,9 @@ Nebula/
 │   ├── san/                     # Sanitizer Memory Hooks Implementation
 │   ├── gui/                     # font.cpp, wm.cpp (Desktop Window Manager Compositor)
 │   └── core/                    # kernel.cpp (Kernel Entry Point)
+├── userland/                    # Ring 3 Userland Ecosystem
+│   ├── libc/                    # Standard C Library (libnebula) & C Runtime crt0.asm
+│   └── apps/                    # Ring 3 Native Applications (Process Init PID 1 & Shell)
 ├── docs/                        # Dokumentasi Proyek & Architecture
 ├── Makefile                     # Updated GNU Make Build Script
 └── README.md                    # Dokumentasi Utama Proyek
