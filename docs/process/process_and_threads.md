@@ -1,40 +1,31 @@
-# Spesifikasi Proses dan Thread Nebula OS
+# Spesifikasi Manajemen Proses & Thread Nebula OS (Mach Sched Layer)
 
-## 1. Konsep Dasar
-Nebula OS mendukung alur eksekusi multitasking dengan pemisahan tegas antara **Proses** (unit alokasi sumber daya & isolasi memori) dan **Thread** (unit eksekusi penjadwalan).
+## 1. Gambaran Umum
+Manajemen proses dan thread Nebula OS dikelola pada Mach Microkernel Core Layer (`include/mach/sched/` & `kernel/mach/sched/`) berbasis struktur data Process Control Block (PCB) dan Thread Control Block (TCB).
 
 ---
 
 ## 2. Struktur Data Utama
 
-### 2.1 Process Control Block (PCB)
-PCB menyimpan status lengkap dari sebuah proses:
-* `pid`: Process ID unik.
-* `pml4_phys`: Alamat fisik PML4 Page Table proses (Isolasi Memori Virtual).
-* `state`: Status proses (`PROCESS_CREATED`, `PROCESS_READY`, `PROCESS_RUNNING`, `PROCESS_BLOCKED`, `PROCESS_TERMINATED`).
-* `threads`: List / Vector thread yang dimiliki oleh proses ini.
-* `file_descriptors`: Tabel handle file terbuka (VFS File Descriptor Table).
+### 2.1 Process Control Block (PCB) (`process.hpp`)
+Mewakili satu proses terisolasi yang memiliki ruang alamat virtual dan tabel kredensial sendiri:
+* `pid_t pid`: ID proses unik.
+* `uintptr_t page_directory`: Pointer fisik ke tabel paging (CR3) milik proses.
+* `Thread* threads`: Daftar thread yang berjalan di dalam proses ini.
 
 ### 2.2 Thread Control Block (TCB)
-TCB menyimpan konteks registrasi CPU untuk eksekusi individu:
-* `tid`: Thread ID unik.
-* `parent_process`: Pointer ke PCB pemilik.
-* `rsp`: Stack Pointer 64-bit saat context switch terjadi.
-* `kernel_stack`: Alamat batas atas Stack Kernel (diperlukan saat interupsi/syscall berpindah dari Ring 3 ke Ring 0).
-* `cpu_context`: Register CPU (`RAX`, `RBX`, `RCX`, `RDX`, `RSI`, `RDI`, `RBP`, `R8`-`R15`, `RIP`, `RFLAGS`).
+Mewakili unit eksekusi terkecil yang dijadwalkan oleh Preemptive Scheduler:
+* `uint32_t tid`: ID thread unik.
+* `char name[32]`: Nama deskriptif thread (contoh: `"KernelMain"`, `"Thread Alpha"`).
+* `ThreadState state`: Status thread (`EMBRYO`, `READY`, `RUNNING`, `BLOCKED`, `TERMINATED`).
+* `uintptr_t stack_base` & `stack_size`: Alokasi memori stack terisolasi 16 KiB.
+* `cpu_registers_t regs`: Simpanan konteks register CPU (`EAX`, `EBX`, `ECX`, `EDX`, `ESP`, `EBP`, `EIP`, `EFLAGS`).
 
 ---
 
-## 3. Siklus Hidup Proses (Process Lifecycle)
+## 3. Preemptive Context Switch
 
-```
-[Create Process] ---> READY <---> RUNNING ---> TERMINATED (Zombie / Reaped)
-                       ^            |
-                       |            v
-                       +--- BLOCKED (Menunggu I/O / Timer / Event)
-```
-
-1. **Creation**: `process_create()` mengalokasikan PCB, tabel PML4 baru, dan stack awal.
-2. **Execution**: Scheduler memilih thread dari antrean `READY` dan melakukan context switch.
-3. **Blocking**: Thread berpindah ke status `BLOCKED` jika menunggu pembacaan disk, input keyboard, atau timer.
-4. **Termination**: Saat fungsi `exit()` dipanggil, sumber daya memori dibebaskan dan status berubah menjadi `TERMINATED`.
+1. Saat interupsi timer (IRQ 0 PIT 100Hz) dipicu, CPU menyimpan konteks register thread ke stack.
+2. `Scheduler::handle_timer_tick(regs)` memilih thread berikutnya dari antrean `READY`.
+3. Fungsi `irq_handler` di [interrupts.cpp](file:///c:/project/Nebula/kernel/mach/arch/interrupts.cpp) mengembalikan pointer `ESP` baru milik thread target.
+4. Instruksi assembly `mov esp, eax` pada [isr.asm](file:///c:/project/Nebula/kernel/mach/arch/isr.asm) beralih ke stack terisolasi thread target.

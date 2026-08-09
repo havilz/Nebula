@@ -15,7 +15,7 @@
 
 ---
 
-## 2. Struktur Direktori Proyek (XNU-Hybrid Architecture 1-to-1)
+## 2. Source Tree (XNU-Hybrid Architecture 1-to-1)
 
 ```text
 Nebula/

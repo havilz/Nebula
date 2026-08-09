@@ -1,24 +1,23 @@
-# Spesifikasi Driver Perangkat Keras (Hardware Drivers)
+# Spesifikasi Driver Perangkat Keras Nebula OS (IOKit Driver Framework)
 
-## 1. Arsitektur Driver Modular
-Driver dalam Nebula OS dikelola sebagai modul terpisah yang berinteraksi langsung dengan port I/O x86_64 (`inb`/`outb`, `inw`/`outw`) dan pemetaan memori perangkat (Memory-Mapped I/O / MMIO).
+## 1. Gambaran Umum
+Seluruh driver perangkat keras Nebula OS mengadopsi IOKit Object-Oriented C++ Driver Framework (`include/iokit/` & `kernel/iokit/`) mewarisi base class abstrak `IODevice` (`include/iokit/iodevice.hpp`).
 
 ---
 
-## 2. Driver Utama Phase 1 - 3
+## 2. Rincian Driver IOKit Utama
 
-1. **VGA Text Mode & VBE Framebuffer**:
-   * **VGA Text Mode**: Menulis ke buffer memori `0xB8000` (80x25 karakter 16-bit warna) pada tahap awal boot.
-   * **VGA/VBE Linear Framebuffer**: Mengatur mode grafis tinggi (1024x768 32-bit RGBA color) untuk antarmuka GUI Window Manager.
+### 2.1 Driver Display Bochs VBE BGA (`iokit/display/vbe.hpp` & `vbe.cpp`)
+* Menangani pemrograman register I/O Bochs BGA Port `0x1CE` & `0x1CF`.
+* Mengonfigurasi mode grafis resolusi tinggi 800x600 piksel 32-bit True Color (BPP).
+* Menyediakan Linear Framebuffer (LFB) di `0xFD000000` dengan dukungan double buffering RAM.
 
-2. **PS/2 Keyboard Driver**:
-   * Mengolah interupsi IRQ 1 (Vector 33 di IDT).
-   * Membaca scancode dari I/O Port `0x60`, menerjemahkannya ke karakter ASCII / Virtual Key Event, lalu memasukkannya ke ring buffer keyboard.
+### 2.2 Driver Input PS/2 Mouse & Keyboard (`iokit/input/`)
+* **PS/2 Mouse** (`mouse.hpp` & `mouse.cpp`): Membaca paket interupsi IRQ 12 (Vector 44) dan menggerakkan Graphic Cursor di atas Compositor GUI Window Manager.
+* **PS/2 Keyboard** (`keyboard.hpp` & `keyboard.cpp`): Membaca scancode interupsi IRQ 1 (Vector 33) dan mengonversinya ke tabel karakter US QWERTY.
 
-3. **PIT (Programmable Interval Timer)**:
-   * Mengolah interupsi IRQ 0 (Vector 32 di IDT).
-   * Dikonfigurasi pada frekuensi 100 Hz (10 milidetik per tick) untuk mendukung penakaran waktu OS dan penjadwalan multitasking preemptif.
+### 2.3 Driver PIT Timer 8254 (`iokit/timer/pit.hpp` & `pit.cpp`)
+* Memrogram 8254 Programmable Interval Timer pada Port `0x40`-`0x43` untuk memicu interupsi IRQ 0 (Vector 32) pada frekuensi 100 Hz.
 
-4. **Serial Controller (COM1 / UART 16550)**:
-   * Mengirimkan log teks kernel ke Port I/O `0x3F8`.
-   * Memungkinkan pencetakan log debugging secara real-time ke terminal QEMU (`-serial stdio`).
+### 2.4 Driver UART 16550 Serial Debugging (`iokit/serial/serial.hpp` & `serial.cpp`)
+* Memrogram pengirim karakter serial pada Port COM1 (`0x3F8`) untuk memancarkan log debug kernel ke konsol terminal pengguna.

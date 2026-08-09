@@ -1,6 +1,6 @@
 # RULES.md - Panduan & Aturan Penulisan Kode Nebula OS
 
-Dokumen ini berisi aturan wajib (Strict Coding Standards) dalam pengembangan **Nebula OS**. Semua kontributor dan modul wajib mematuhi aturan ini demi menjaga keamanan memori, kestabilan kernel, dan performa tinggi.
+Dokumen ini berisi aturan wajib (Strict Coding Standards) dalam pengembangan **Nebula OS** (XNU-Hybrid Architecture Model). Semua kontributor dan modul wajib mematuhi aturan ini demi menjaga keamanan memori, kestabilan kernel, dan performa tinggi.
 
 ---
 
@@ -23,22 +23,34 @@ Dokumen ini berisi aturan wajib (Strict Coding Standards) dalam pengembangan **N
 
 ---
 
-## 2. Manajemen Memori & Pointer
+## 2. Struktur Modul XNU-Hybrid & Include Pathing Rules
+
+1. **Pemisahan Modul XNU**:
+   * Header untuk CPU Architecture, Memory, dan Scheduler diletakkan di `include/mach/`.
+   * Header untuk VFS, Syscall, dan OS Services diletakkan di `include/bsd/`.
+   * Header untuk Driver C++ OOP diletakkan di `include/iokit/`.
+   * Header untuk Kernel Runtime Utilities diletakkan di `include/libkern/`.
+2. **Standard Include Angle Brackets (`<...>`)**:
+   * Gunakan angle brackets `<...>` yang mengacu pada direktori `-Iinclude` dalam Makefile (contoh: `#include <mach/vm/pmm.hpp>`, `#include <iokit/display/vbe.hpp>`).
+
+---
+
+## 3. Manajemen Memori & Pointer
 
 1. **Larangan Memory Leak**:
    * Setiap alokasi memori melalui `kmalloc()` atau `operator new` wajib memiliki pasangan `kfree()` atau `delete`.
 2. **Prioritaskan RAII (Resource Acquisition Is Initialization)**:
-   * Gunakan pembungkus smart pointer custom (`UniquePtr<T>`, `SharedPtr<T>`) untuk mengelola umur objek di dalam kernel.
+   * Gunakan pembungkus smart pointer custom (`UniquePtr<T>`, `SharedPtr<T>`) atau `libkern::OSObject` refcounting untuk mengelola umur objek di dalam kernel.
 3. **Validasi Pointer Sebelum Dereference**:
    * Selalu lakukan pemeriksaan `if (ptr == nullptr)` sebelum mengakses data di balik pointer untuk mencegah Kernel Panic / Page Fault.
 
 ---
 
-## 3. Konvensi Penamaan (Naming Conventions)
+## 4. Konvensi Penamaan (Naming Conventions)
 
 | Elemen Kode | Konvensi | Contoh |
 | :--- | :--- | :--- |
-| **Class / Struct / Enum** | `PascalCase` | `PhysicalMemoryManager`, `ProcessControlBlock` |
+| **Class / Struct / Enum** | `PascalCase` | `PhysicalMemoryManager`, `ProcessControlBlock`, `IODevice` |
 | **Fungsi / Method** | `snake_case` atau `camelCase` | `initialize_paging()`, `allocateFrame()` |
 | **Variabel / Parameter** | `snake_case` | `page_table_index`, `frame_buffer` |
 | **Variabel Anggota Class** | Prefix `m_` + `camelCase` | `m_processId`, `m_pageDirectory` |
@@ -48,7 +60,7 @@ Dokumen ini berisi aturan wajib (Strict Coding Standards) dalam pengembangan **N
 
 ---
 
-## 4. Keamanan Interupsi & Ring 0
+## 5. Keamanan Interupsi & Ring 0
 
 1. **Operasi Atomic & Critical Section**:
    * Saat mengubah struktur data kritis kernel (seperti antrean scheduler atau daftar memori bebas), interupsi hardware wajib dimatikan sementara (`cli`) dan diaktifkan kembali (`sti`), atau menggunakan Spinlock.
@@ -60,7 +72,7 @@ Dokumen ini berisi aturan wajib (Strict Coding Standards) dalam pengembangan **N
 
 ---
 
-## 5. Kebijakan Kompilasi & Warning
+## 6. Kebijakan Kompilasi & Warning
 
 * **Zero Warnings Policy**: Kode wajib bersih tanpa warning saat dikompilasi dengan `-Wall -Wextra -Werror`.
 * **Explicit Cast**: Hindari implicit casting. Gunakan `static_cast`, `reinterpret_cast`, atau `const_cast` secara bijak dan eksplisit.

@@ -1,10 +1,10 @@
-# Spesifikasi Manajemen Memori Nebula OS
+# Spesifikasi Manajemen Memori Nebula OS (Mach VM Layer)
 
 ## 1. Gambaran Umum
-Manajemen memori Nebula OS dibagi menjadi tiga tingkatan hirarki utama:
-1. **Physical Memory Manager (PMM)**: Mengelola frame fisik memori RAM (4 KiB per frame) menggunakan struktur data Bitmap.
-2. **Virtual Memory Manager (VMM)**: Mengelola pemetaan alamat virtual ke frame fisik menggunakan struktur Paging 4-Tingkat x86_64 (PML4, PDPT, PD, PT).
-3. **Kernel Heap Allocator**: Menyediakan fungsi alokasi memori dinamis `kmalloc()` dan `kfree()`, serta overloading operator global C++ `new` dan `delete`.
+Manajemen memori Nebula OS diletakkan pada Mach Microkernel Core Layer (`include/mach/vm/` & `kernel/mach/vm/`) dan dibagi menjadi tiga tingkatan hirarki utama:
+1. **Physical Memory Manager (PMM)** (`pmm.hpp` & `pmm.cpp`): Mengelola frame fisik memori RAM (4 KiB per frame) menggunakan struktur data Bitmap.
+2. **Virtual Memory Manager (VMM)** (`vmm.hpp` & `vmm.cpp`): Mengelola pemetaan alamat virtual ke frame fisik menggunakan struktur Paging x86_64.
+3. **Kernel Heap Allocator** (`heap.hpp`, `heap.cpp`, `kheap.cpp`): Menyediakan fungsi alokasi memori dinamis `kmalloc()` dan `kfree()`, serta overloading operator global C++ `new` dan `delete`.
 
 ---
 
@@ -22,12 +22,12 @@ Manajemen memori Nebula OS dibagi menjadi tiga tingkatan hirarki utama:
 
 ---
 
-## 3. Virtual Memory Manager (VMM) & Paging x86_64
+## 3. Virtual Memory Manager (VMM) & Paging
 
-### 3.1 Paging 4-Tingkat (PML4)
-Dalam mode 64-bit Long Mode, translasi alamat virtual dilakukan melalui 4 level tabel:
+### 3.1 Paging & Identity Mapping
+Dalam mode x86_64 Paging, translasi alamat virtual dilakukan melalui tabel paging:
 
-```
+```text
 Virtual Address [47:0]
 ├── Bits [47:39] -> PML4 Index   (Page Map Level 4)
 ├── Bits [38:30] -> PDPT Index   (Page Directory Pointer Table)
@@ -36,21 +36,21 @@ Virtual Address [47:0]
 └── Bits [11:0]  -> Physical Page Offset
 ```
 
-### 3.2 Pemetaan Higher-Half Kernel
+### 3.2 Pemetaan Higher-Half Kernel & Video RAM
 * **Alamat Virtual Higher-Half**: `0xFFFF800000000000` s/d `0xFFFFFFFFFFFFFFFF`.
-* Seluruh memori RAM fisik dipetakan secara langsung (*Direct Physical Mapping*) di `0xFFFF800000000000` untuk memudahkan kernel mengakses sembarang alamat fisik RAM.
+* **Hardware Framebuffer VRAM**: Memetakan alamat fisik Video RAM `0xFD000000` dan `0xE0000000` di VMM page tables agar penulisan piksel Bochs BGA tidak pernah memicu Page Fault (`#PF`).
 
 ---
 
 ## 4. Kernel Heap Allocator
 
 ### 4.1 Desain Allocator
-Kernel Heap mengelola blok memori dinamis di atas alamat virtual kernel yang dialokasikan oleh VMM:
-* Menggunakan gabungan algoritma **Free List / Slab Allocator** untuk alokasi memori berukuran kecil.
+Kernel Heap mengelola pool memori dinamis (`0x00C00000`) di atas alamat virtual kernel yang dialokasikan oleh VMM:
+* Menggunakan alokator terstruktur untuk alokasi memori berukuran kecil hingga besar.
 * Alokasi besar dialokasikan langsung dalam kelipatan 4 KiB halaman VMM.
 
 ### 4.2 Dukungan C++ Dynamic Memory
-Dua operator bawaan C++ berikut di-overload untuk memanggil `kmalloc` dan `kfree`:
+Dua operator bawaan C++ berikut di-overload pada `kernel/mach/vm/kheap.cpp`:
 
 ```cpp
 void* operator new(size_t size) {

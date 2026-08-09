@@ -82,11 +82,12 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 - [x] Desktop Compositor & GUI Window Manager (`include/gui/wm.hpp`, `kernel/gui/wm.cpp`).
 - [x] Pengujian Desktop Wallpaper, Taskbar Uptime Clock, Jendela System Monitor, & Jendela Interactive Terminal GUI di QEMU (`kernel/core/kernel.cpp`).
 
-### Fase 8: Refactoring Kernel ke Arsitektur XNU-Hybrid (Mach Core, BSD Services, & IOKit Drivers)
+### Fase 8: Refactoring Kernel ke Arsitektur XNU-Hybrid 1-to-1 (Mach Core, BSD Services, IOKit Drivers, Libkern, Libsa, Security, Pexpert, San)
 - [x] Penataan Layer Kernel Mach-Core Primitives (`kernel/mach/` -> Thread, Scheduler, PMM/VMM Paging, IPC Ports).
 - [x] Penataan Layer BSD OS Services (`kernel/bsd/` -> VFS, Process Tree, Syscall Handler, Signal/FD Table).
 - [x] Framework Driver C++ Berorientasi Objek IOKit/DriverKit (`kernel/iokit/` -> `IODevice` Base Class, Lifecycle Management).
-- [x] Pembaruan Build System Makefile & Pengujian Eksekusi di QEMU (Sukses 100%).
+- [x] Modul Support Kernel Runtime & Security (`libkern`, `libsa`, `security`, `pexpert`, `san`).
+- [x] Pembaruan Build System Makefile, VS Code Intellisense, & Pengujian Eksekusi di QEMU (Sukses 100%).
 
 ### Fase 9: Driver Storage ATA/AHCI & System Berkas Permanen (FAT32/Ext2)
 - [ ] Driver Controller Storage ATA / AHCI (SATA/IDE Sector Read/Write LBA28/LBA48).
