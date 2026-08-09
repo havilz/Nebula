@@ -4,12 +4,12 @@
  * @author Nebula OS Team
  */
 
-#include "../../include/kernel/gui/wm.hpp"
-#include "../../include/kernel/drivers/vbe.hpp"
-#include "../../include/kernel/drivers/mouse.hpp"
-#include "../../include/kernel/drivers/serial.hpp"
-#include "../../include/kernel/drivers/pit.hpp"
-#include "../../include/kernel/gui/font.hpp"
+#include <gui/wm.hpp>
+#include <iokit/display/vbe.hpp>
+#include <iokit/input/mouse.hpp>
+#include <iokit/serial/serial.hpp>
+#include <iokit/timer/pit.hpp>
+#include <gui/font.hpp>
 
 namespace nebula {
 namespace gui {
