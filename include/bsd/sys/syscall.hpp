@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <mach/arch/interrupts.hpp>
+#include "../../mach/arch/interrupts.hpp"
 
 namespace nebula {
 namespace syscall {

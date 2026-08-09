@@ -4,12 +4,14 @@
  * @author Nebula OS Team
  */
 
-#include <gui/wm.hpp>
-#include <iokit/display/vbe.hpp>
-#include <iokit/input/mouse.hpp>
-#include <iokit/serial/serial.hpp>
-#include <iokit/timer/pit.hpp>
-#include <gui/font.hpp>
+#include <stddef.h>
+#include <stdint.h>
+#include "../../include/gui/wm.hpp"
+#include "../../include/iokit/display/vbe.hpp"
+#include "../../include/iokit/input/mouse.hpp"
+#include "../../include/iokit/serial/serial.hpp"
+#include "../../include/iokit/timer/pit.hpp"
+#include "../../include/gui/font.hpp"
 
 namespace nebula {
 namespace gui {
@@ -18,6 +20,12 @@ Window WindowManager::m_windows[MAX_WINDOWS];
 size_t WindowManager::m_window_count = 0;
 int32_t WindowManager::m_focused_window_id = -1;
 bool WindowManager::m_prev_left_button = false;
+
+uint32_t WindowManager::m_wallpaper_cache[800 * 600];
+uint32_t WindowManager::m_cursor_backbuffer[24 * 24];
+int32_t WindowManager::m_old_mouse_x = -1;
+int32_t WindowManager::m_old_mouse_y = -1;
+bool WindowManager::m_first_render = true;
 
 static void str_copy(char* dest, const char* src, size_t max_len) {
     if (!dest || !src) return;
@@ -33,7 +41,25 @@ void WindowManager::init() {
     m_window_count = 0;
     m_focused_window_id = -1;
     m_prev_left_button = false;
-    nebula::drivers::Serial::write_string("[WM] Desktop Compositor Initialized\n");
+    m_first_render = true;
+    m_old_mouse_x = -1;
+    m_old_mouse_y = -1;
+
+    // Pre-render Wallpaper Gradient to m_wallpaper_cache once at startup
+    size_t w = nebula::drivers::VBE::get_width();
+    size_t h = nebula::drivers::VBE::get_height();
+
+    for (size_t y = 0; y < h; y++) {
+        uint8_t r = static_cast<uint8_t>(15 + (y * 30) / h);
+        uint8_t g = static_cast<uint8_t>(23 + (y * 40) / h);
+        uint8_t b = static_cast<uint8_t>(42 + (y * 80) / h);
+        uint32_t color = nebula::drivers::make_color(r, g, b);
+        for (size_t x = 0; x < w; x++) {
+            m_wallpaper_cache[y * w + x] = color;
+        }
+    }
+
+    nebula::drivers::Serial::write_string("[WM] Desktop Compositor & Offscreen Wallpaper Cache Initialized\n");
 }
 
 Window* WindowManager::create_window(int32_t x, int32_t y, uint32_t w, uint32_t h, const char* title, window_render_func_t render_func) {
@@ -55,6 +81,7 @@ Window* WindowManager::create_window(int32_t x, int32_t y, uint32_t w, uint32_t 
 
     m_focused_window_id = win->id;
     m_window_count++;
+    m_first_render = true;
 
     nebula::drivers::Serial::write_string("[WM] Created GUI Window: ");
     nebula::drivers::Serial::write_string(title);
@@ -66,15 +93,12 @@ Window* WindowManager::create_window(int32_t x, int32_t y, uint32_t w, uint32_t 
 void WindowManager::draw_wallpaper() {
     size_t w = nebula::drivers::VBE::get_width();
     size_t h = nebula::drivers::VBE::get_height();
+    uint32_t* backbuf = nebula::drivers::VBE::get_backbuffer_ptr();
 
-    // Deep Space Gradient (Dark Navy -> Sky Blue)
-    for (size_t y = 0; y < h; y++) {
-        uint8_t r = static_cast<uint8_t>(15 + (y * 30) / h);
-        uint8_t g = static_cast<uint8_t>(23 + (y * 40) / h);
-        uint8_t b = static_cast<uint8_t>(42 + (y * 80) / h);
-        uint32_t color = nebula::drivers::make_color(r, g, b);
-        for (size_t x = 0; x < w; x++) {
-            nebula::drivers::VBE::put_pixel(x, y, color);
+    // Fast direct pointer copy of pre-rendered wallpaper
+    if (backbuf != nullptr) {
+        for (size_t i = 0; i < w * h; i++) {
+            backbuf[i] = m_wallpaper_cache[i];
         }
     }
 
@@ -122,6 +146,7 @@ void WindowManager::process_mouse(int32_t mouse_x, int32_t mouse_y, bool left_do
             if (left_down) {
                 win->x = mouse_x - win->drag_offset_x;
                 win->y = mouse_y - win->drag_offset_y;
+                m_first_render = true;
             } else {
                 win->is_dragging = false;
             }
@@ -141,12 +166,14 @@ void WindowManager::process_mouse(int32_t mouse_x, int32_t mouse_y, bool left_do
                 win->is_dragging = true;
                 win->drag_offset_x = mouse_x - win->x;
                 win->drag_offset_y = mouse_y - win->y;
+                m_first_render = true;
                 break;
             }
             // Check Inside Window Body
             else if (mouse_x >= win->x && mouse_x <= win->x + static_cast<int32_t>(win->width) &&
                      mouse_y >= win->y && mouse_y <= win->y + static_cast<int32_t>(win->height)) {
                 m_focused_window_id = win->id;
+                m_first_render = true;
                 break;
             }
         }
@@ -159,47 +186,85 @@ void WindowManager::render_all() {
     nebula::drivers::mouse_state_t mouse = nebula::drivers::Mouse::get_state();
     process_mouse(mouse.x, mouse.y, mouse.left_button);
 
-    // 1. Draw Wallpaper
-    draw_wallpaper();
+    bool mouse_moved = (mouse.x != m_old_mouse_x || mouse.y != m_old_mouse_y);
 
-    // 2. Draw Windows
-    for (size_t i = 0; i < m_window_count; i++) {
-        Window* win = &m_windows[i];
-        bool is_focused = (win->id == static_cast<uint32_t>(m_focused_window_id));
+    if (m_first_render) {
+        // 1. Draw Wallpaper
+        draw_wallpaper();
 
-        // Window Shadow & Outer Border
-        nebula::drivers::VBE::fill_rect(win->x + 4, win->y + 4, win->width, win->height, 0x050B14);
-        nebula::drivers::VBE::fill_rect(win->x, win->y, win->width, win->height, is_focused ? 0x38BDF8 : 0x475569);
-        nebula::drivers::VBE::fill_rect(win->x + 2, win->y + 2, win->width - 4, win->height - 4, win->bg_color);
+        // 2. Draw Windows
+        for (size_t i = 0; i < m_window_count; i++) {
+            Window* win = &m_windows[i];
+            bool is_focused = (win->id == static_cast<uint32_t>(m_focused_window_id));
 
-        // Titlebar Panel
-        uint32_t titlebar_color = is_focused ? 0x1E293B : 0x334155;
-        nebula::drivers::VBE::fill_rect(win->x + 2, win->y + 2, win->width - 4, 24, titlebar_color);
+            // Window Shadow & Outer Border
+            nebula::drivers::VBE::fill_rect(win->x + 4, win->y + 4, win->width, win->height, 0x050B14);
+            nebula::drivers::VBE::fill_rect(win->x, win->y, win->width, win->height, is_focused ? 0x38BDF8 : 0x475569);
+            nebula::drivers::VBE::fill_rect(win->x + 2, win->y + 2, win->width - 4, win->height - 4, win->bg_color);
 
-        // Window Controls (Close X & Minimize - Buttons)
-        nebula::drivers::VBE::fill_rect(win->x + win->width - 22, win->y + 6, 16, 16, 0xEF4444);
-        Font::draw_char(win->x + win->width - 18, win->y + 6, 'X', 0xFFFFFF);
+            // Titlebar Panel
+            uint32_t titlebar_color = is_focused ? 0x1E293B : 0x334155;
+            nebula::drivers::VBE::fill_rect(win->x + 2, win->y + 2, win->width - 4, 24, titlebar_color);
 
-        nebula::drivers::VBE::fill_rect(win->x + win->width - 42, win->y + 6, 16, 16, 0xF59E0B);
-        Font::draw_char(win->x + win->width - 38, win->y + 6, '-', 0xFFFFFF);
+            // Window Controls (Close X & Minimize - Buttons)
+            nebula::drivers::VBE::fill_rect(win->x + win->width - 22, win->y + 6, 16, 16, 0xEF4444);
+            Font::draw_char(win->x + win->width - 18, win->y + 6, 'X', 0xFFFFFF);
 
-        // Title Text
-        Font::draw_string(win->x + 10, win->y + 6, win->title, is_focused ? 0xF8FAFC : 0x94A3B8);
+            nebula::drivers::VBE::fill_rect(win->x + win->width - 42, win->y + 6, 16, 16, 0xF59E0B);
+            Font::draw_char(win->x + win->width - 38, win->y + 6, '-', 0xFFFFFF);
 
-        // Window Client Area Callback
-        if (win->render_func != nullptr) {
-            win->render_func(win->x + 10, win->y + 32, win->width - 20, win->height - 40);
+            // Title Text
+            Font::draw_string(win->x + 10, win->y + 6, win->title, is_focused ? 0xF8FAFC : 0x94A3B8);
+
+            // Window Client Area Callback
+            if (win->render_func != nullptr) {
+                win->render_func(win->x + 10, win->y + 32, win->width - 20, win->height - 40);
+            }
         }
+
+        // 3. Draw Taskbar
+        draw_taskbar();
+
+        // 4. Save Full Cursor Backbuffer (24x24)
+        for (int ry = 0; ry < 24; ry++) {
+            for (int rx = 0; rx < 24; rx++) {
+                m_cursor_backbuffer[ry * 24 + rx] = nebula::drivers::VBE::get_pixel(mouse.x + rx, mouse.y + ry);
+            }
+        }
+
+        // 5. Draw Mouse Cursor
+        nebula::drivers::Mouse::draw_cursor(mouse.x, mouse.y);
+        nebula::drivers::VBE::swap_buffers();
+
+        m_old_mouse_x = mouse.x;
+        m_old_mouse_y = mouse.y;
+        m_first_render = false;
+
+    } else if (mouse_moved) {
+        // Fast Restore Old Cursor Region (24x24)
+        if (m_old_mouse_x >= 0 && m_old_mouse_y >= 0) {
+            for (int ry = 0; ry < 24; ry++) {
+                for (int rx = 0; rx < 24; rx++) {
+                    nebula::drivers::VBE::put_pixel(m_old_mouse_x + rx, m_old_mouse_y + ry, m_cursor_backbuffer[ry * 24 + rx]);
+                }
+            }
+            nebula::drivers::VBE::swap_rect(m_old_mouse_x, m_old_mouse_y, 24, 24);
+        }
+
+        // Save New Cursor Region (24x24)
+        for (int ry = 0; ry < 24; ry++) {
+            for (int rx = 0; rx < 24; rx++) {
+                m_cursor_backbuffer[ry * 24 + rx] = nebula::drivers::VBE::get_pixel(mouse.x + rx, mouse.y + ry);
+            }
+        }
+
+        // Draw Mouse Cursor at New Position
+        nebula::drivers::Mouse::draw_cursor(mouse.x, mouse.y);
+        nebula::drivers::VBE::swap_rect(mouse.x, mouse.y, 24, 24);
+
+        m_old_mouse_x = mouse.x;
+        m_old_mouse_y = mouse.y;
     }
-
-    // 3. Draw Taskbar
-    draw_taskbar();
-
-    // 4. Draw Graphic Mouse Cursor
-    nebula::drivers::Mouse::draw_cursor(mouse.x, mouse.y);
-
-    // 5. Swap Backbuffer to Linear Framebuffer
-    nebula::drivers::VBE::swap_buffers();
 }
 
 } // namespace gui

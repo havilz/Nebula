@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <mach/sched/process.hpp>
-#include <mach/arch/interrupts.hpp>
+#include "../arch/interrupts.hpp"
 
 namespace nebula {
 namespace scheduler {

@@ -103,7 +103,7 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 ### Fase 11: Advanced GUI Toolkit, Window Resizing, & Desktop Application Suite
 - [ ] Library Component GUI Widget (Button, TextBox, Label, ProgressBar, MenuBar, Dropdown).
 - [ ] Window Manager Interaktif (Window Resizing & Window State Maximize/Minimize).
-- [ ] Optimasi Rendering GUI Engine (Dirty/Damage Rectangles, Event-Driven Compositor, & Hardware Cursor).
+- [x] Optimasi Rendering GUI Engine (Offscreen Wallpaper Cache, Fast Mouse Cursor Restore Buffer 16x16, Dirty Rectangles `VBE::swap_rect`).
 - [ ] Desktop Application Suite (Nebula Terminal App, File Explorer App, Text Editor App, System Monitor App).
 
 ### Fase 12: Network Driver (E1000/RTL8139) & TCP/IP Protocol Stack

@@ -150,8 +150,14 @@ public:
      */
     static void swap_buffers();
 
+    /**
+     * @brief Swap local dirty rectangle from backbuffer to physical linear framebuffer
+     */
+    static void swap_rect(int32_t x, int32_t y, uint32_t width, uint32_t height);
+
     static size_t get_width() { return m_width; }
     static size_t get_height() { return m_height; }
+    static uint32_t* get_backbuffer_ptr() { return m_backbuffer; }
     static bool is_initialized() { return m_initialized; }
 };
 

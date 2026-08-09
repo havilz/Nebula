@@ -1,7 +1,7 @@
 #ifndef NEBULA_DRIVERS_KEYBOARD_HPP
 #define NEBULA_DRIVERS_KEYBOARD_HPP
 
-#include <mach/arch/interrupts.hpp>
+#include "../../mach/arch/interrupts.hpp"
 #include <stddef.h>
 #include <stdint.h>
 

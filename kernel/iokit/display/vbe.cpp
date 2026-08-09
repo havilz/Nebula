@@ -128,6 +128,24 @@ void VBE::swap_buffers() {
     }
 }
 
+void VBE::swap_rect(int32_t x, int32_t y, uint32_t width, uint32_t height) {
+    if (!m_initialized || m_backbuffer == nullptr || m_framebuffer == nullptr) return;
+
+    if (x < 0) { width += x; x = 0; }
+    if (y < 0) { height += y; y = 0; }
+    if (static_cast<size_t>(x) >= m_width || static_cast<size_t>(y) >= m_height) return;
+
+    if (static_cast<size_t>(x + width) > m_width) width = m_width - x;
+    if (static_cast<size_t>(y + height) > m_height) height = m_height - y;
+
+    for (size_t r = 0; r < height; r++) {
+        size_t offset = (y + r) * m_width + x;
+        for (size_t c = 0; c < width; c++) {
+            m_framebuffer[offset + c] = m_backbuffer[offset + c];
+        }
+    }
+}
+
 } // namespace drivers
 } // namespace nebula
 

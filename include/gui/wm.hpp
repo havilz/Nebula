@@ -39,6 +39,12 @@ private:
     static int32_t m_focused_window_id;
     static bool m_prev_left_button;
 
+    static uint32_t m_wallpaper_cache[800 * 600];
+    static uint32_t m_cursor_backbuffer[24 * 24];
+    static int32_t m_old_mouse_x;
+    static int32_t m_old_mouse_y;
+    static bool m_first_render;
+
 public:
     /**
      * @brief Initialize Window Manager & Desktop Compositor
