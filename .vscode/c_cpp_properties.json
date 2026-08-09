@@ -4,7 +4,13 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/include",
-                "${workspaceFolder}/include/**"
+                "${workspaceFolder}/include/**",
+                "${workspaceFolder}/kernel"
+            ],
+            "compilerArgs": [
+                "-m32",
+                "-ffreestanding",
+                "-I${workspaceFolder}/include"
             ],
             "defines": [
                 "_DEBUG",

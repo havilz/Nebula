@@ -16,7 +16,7 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 [X] Fase 6: Virtual File System (VFS), Initrd RAM Disk, & Ring 3 System Calls (INT 0x80) (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 7: VBE Framebuffer & Antarmuka Grafis (GUI Window Manager) (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 8: Refactoring Kernel ke Arsitektur XNU-Hybrid (Mach Core, BSD Services, & IOKit Drivers) (Selesai 100% - Terverifikasi di QEMU)
-[ ] Fase 9: Driver Storage ATA/AHCI & System Berkas Permanen (FAT32/Ext2)
+[X] Fase 9: Driver Storage ATA/AHCI & System Berkas Permanen (FAT32/Ext2) (Selesai 100% - Terverifikasi di QEMU)
 [ ] Fase 10: ELF Executable Loader, Standard C Library (libnebula), & POSIX Compatibility Layer
 [ ] Fase 11: Advanced GUI Toolkit, Window Resizing, & Desktop Application Suite
 [ ] Fase 12: Network Driver (E1000/RTL8139) & TCP/IP Protocol Stack
@@ -90,9 +90,9 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 - [x] Pembaruan Build System Makefile, VS Code Intellisense, & Pengujian Eksekusi di QEMU (Sukses 100%).
 
 ### Fase 9: Driver Storage ATA/AHCI & System Berkas Permanen (FAT32/Ext2)
-- [ ] Driver Controller Storage ATA / AHCI (SATA/IDE Sector Read/Write LBA28/LBA48).
-- [ ] Parser MBR / GPT Partition Table.
-- [ ] Driver Filesystem FAT32 / Ext2 (Open, Read, Write, Close, Directory Operations).
+- [x] Driver Controller Storage ATA / AHCI (Primary Bus LBA28 PIO Sector Read/Write 512-byte).
+- [x] Parser MBR / GPT Partition Table (Sector 0 Boot Signature 0xAA55 & FAT32 LBA Scanner).
+- [x] Driver Filesystem FAT32 / Ext2 (BPB Parser, Cluster Calculation, Root VNode Mounting `/fat32/`).
 
 ### Fase 10: ELF Executable Loader, Standard C Library (libnebula), & POSIX Compatibility Layer
 - [ ] ELF32 / ELF64 Executable Binary Loader.

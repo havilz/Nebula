@@ -10,6 +10,7 @@ include/iokit/
 ├── console/      # VGA Text Console Driver Header
 ├── display/      # Bochs BGA VBE Framebuffer Driver Header
 ├── input/        # PS/2 Mouse & Keyboard Drivers Headers
+├── storage/      # ATA Primary Controller & MBR Parser Headers
 ├── timer/        # PIT 8254 Timer Driver Header
 └── serial/       # UART 16550 Serial Debug Driver Header
 ```
@@ -17,4 +18,4 @@ include/iokit/
 ## Sub-Direktori
 
 * **`iodevice.hpp`**: Base class `IODevice` dengan metode virtual `init()`, `start()`, `stop()`.
-* **`console/`**, **`display/`**, **`input/`**, **`timer/`**, **`serial/`**: Header driver perangkat keras modular.
+* **`console/`**, **`display/`**, **`input/`**, **`storage/`**, **`timer/`**, **`serial/`**: Header driver perangkat keras modular.

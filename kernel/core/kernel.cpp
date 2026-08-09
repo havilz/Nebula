@@ -5,6 +5,7 @@
  */
 
 #include <bsd/sys/syscall.hpp>
+#include <bsd/vfs/fat32.hpp>
 #include <bsd/vfs/initrd.hpp>
 #include <bsd/vfs/vfs.hpp>
 #include <gui/font.hpp>
@@ -15,6 +16,8 @@
 #include <iokit/input/mouse.hpp>
 #include <iokit/iodevice.hpp>
 #include <iokit/serial/serial.hpp>
+#include <iokit/storage/ata.hpp>
+#include <iokit/storage/mbr.hpp>
 #include <iokit/timer/pit.hpp>
 #include <libkern/libkern.hpp>
 #include <libsa/libsa.hpp>
@@ -33,6 +36,7 @@
 #include <security/security.hpp>
 
 #include "../bsd/sys/syscall.cpp"
+#include "../bsd/vfs/fat32.cpp"
 #include "../bsd/vfs/initrd.cpp"
 #include "../bsd/vfs/vfs.cpp"
 #include "../gui/font.cpp"
@@ -43,6 +47,8 @@
 #include "../iokit/input/mouse.cpp"
 #include "../iokit/iodevice.cpp"
 #include "../iokit/serial/serial.cpp"
+#include "../iokit/storage/ata.cpp"
+#include "../iokit/storage/mbr.cpp"
 #include "../iokit/timer/pit.cpp"
 #include "../libkern/libkern.cpp"
 #include "../libsa/libsa.cpp"
@@ -167,6 +173,15 @@ extern "C" void kernel_main(uint32_t magic, multiboot_info_t *mb_info) {
   VFS::init();
   vnode_t *root_node = Initrd::init(0);
   (void)root_node;
+
+  static nebula::drivers::ATADriver ata_drive;
+  ata_drive.init();
+  if (ata_drive.start()) {
+    uint32_t fat32_lba = 0;
+    nebula::drivers::MBRParser::parse(&ata_drive, &fat32_lba);
+    nebula::fs::FAT32::mount(&ata_drive, fat32_lba);
+  }
+
   Syscall::init();
 
   VBE::init(nullptr);
