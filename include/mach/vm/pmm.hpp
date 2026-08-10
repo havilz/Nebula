@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <multiboot.h>
+#include "../../multiboot.h"
 
 namespace nebula {
 namespace memory {

@@ -2,6 +2,31 @@
 
 Dokumen ini mencatat seluruh riwayat perubahan, keputusan arsitektur teknis, diagnosa masalah, dan solusi yang diterapkan pada proyek **Nebula OS**. Dokumen ini diperbarui secara berkala setiap kali suatu Fase / Task selesai diimplementasikan.
 
+## [Task 11-C] - Native macOS Aqua UI Engine, Floating Dock, Traffic Light Controls, & Widgets
+
+### Ringkasan Tujuan
+Membangun Native macOS Aqua Design Engine untuk Nebula OS yang mencakup Top Global Menu Bar (28px), Floating Translucent Dock (48px), macOS Traffic Light Window Controls (🔴 🟡 🟢), Interactive Window Resizing (Corner Grip), serta Aqua Widget Components (`AquaButton`, `AquaLabel`, `AquaProgressBar`).
+
+---
+
+### Perubahan & Komponen Utama yang Dibuat
+
+#### 1. Top Global Menu Bar & Floating Translucent Dock (`include/gui/aqua.hpp` & `kernel/gui/aqua.cpp`)
+- **Top Global Menu Bar (28px)**: Translucent Dark Bar `#181825` di posisi (0,0) berisi Logo Nebula `🪐`, nama aplikasi aktif, menu bawaan macOS (`File`, `Edit`, `View`, `Window`, `Help`), indikator IP (`10.0.2.15`), dan Jam Uptime.
+- **Floating Translucent Dock (48px)**: Peluncur aplikasi melayang berdesain *Rounded Glassmorphism* di bagian bawah layar `(Y = ScreenHeight - 56)` dengan ikon Terminal, Files, SysMon, dan Settings.
+
+#### 2. macOS Traffic Light Window Controls (🔴 🟡 🟢) & Interactive Resizing
+- **Traffic Light Hitbox**:
+  - 🔴 **Red Close Button**: Menutup/menyembunyikan jendela dari Compositor.
+  - 🟡 **Yellow Minimize Button**: Menyembunyikan jendela ke Dock.
+  - 🟢 **Green Maximize Button**: Memperbesar jendela ke mode *fullscreen* (800x536px) atau mengembalikannya.
+- **Window Resizing Corner Grip**: Memungkinkan penarikan sudut kanan bawah jendela ($12 \times 12$ piksel) untuk mengonfigurasi ulang Lebar ($W$) & Tinggi ($H$) jendela secara dinamis.
+
+#### 3. Aqua Widget Component Library (`include/gui/widget.hpp` & `kernel/gui/widget.cpp`)
+- Komponen UI `Widget` base class, `AquaButton` (sudut membulat 6px dengan gradien macOS Blue `#2563EB`), `AquaLabel`, dan `AquaProgressBar` (fill hijau `#10B981`).
+
+---
+
 ## [Task 11-B] - Perbaikan FAT32 Directory Entry Lookup, Multi-Cluster Traversal, IPv4 Protocol Demuxing, & BSD Socket Table
 
 ### Ringkasan Tujuan

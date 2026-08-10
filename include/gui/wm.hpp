@@ -25,6 +25,15 @@ struct Window {
     int32_t drag_offset_y;
     uint32_t bg_color;
     window_render_func_t render_func;
+
+    // macOS Aqua Window State Flags
+    bool is_minimized;
+    bool is_maximized;
+    bool is_resizing;
+    int32_t saved_x;
+    int32_t saved_y;
+    uint32_t saved_width;
+    uint32_t saved_height;
 };
 
 static const size_t MAX_WINDOWS = 8;

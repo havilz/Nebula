@@ -1,12 +1,7 @@
-/**
- * @file wm.cpp
- * @brief Window Manager & Desktop Compositor implementation for Nebula OS
- * @author Nebula OS Team
- */
-
 #include <stddef.h>
 #include <stdint.h>
 #include "../../include/gui/wm.hpp"
+#include "../../include/gui/aqua.hpp"
 #include "../../include/iokit/display/vbe.hpp"
 #include "../../include/iokit/input/mouse.hpp"
 #include "../../include/iokit/serial/serial.hpp"
@@ -45,6 +40,8 @@ void WindowManager::init() {
     m_old_mouse_x = -1;
     m_old_mouse_y = -1;
 
+    AquaEngine::init();
+
     // Pre-render Wallpaper Gradient to m_wallpaper_cache once at startup
     size_t w = nebula::drivers::VBE::get_width();
     size_t h = nebula::drivers::VBE::get_height();
@@ -59,7 +56,7 @@ void WindowManager::init() {
         }
     }
 
-    nebula::drivers::Serial::write_string("[WM] Desktop Compositor & Offscreen Wallpaper Cache Initialized\n");
+    nebula::drivers::Serial::write_string("[WM] Desktop Compositor & macOS Aqua Engine Initialized\n");
 }
 
 Window* WindowManager::create_window(int32_t x, int32_t y, uint32_t w, uint32_t h, const char* title, window_render_func_t render_func) {
@@ -76,14 +73,22 @@ Window* WindowManager::create_window(int32_t x, int32_t y, uint32_t w, uint32_t 
     win->is_dragging = false;
     win->drag_offset_x = 0;
     win->drag_offset_y = 0;
-    win->bg_color = nebula::drivers::COLOR_BG_NAVY;
+    win->bg_color = 0x1E1E2E; // Dark Slate macOS Window Background
     win->render_func = render_func;
+
+    win->is_minimized = false;
+    win->is_maximized = false;
+    win->is_resizing = false;
+    win->saved_x = x;
+    win->saved_y = y;
+    win->saved_width = w;
+    win->saved_height = h;
 
     m_focused_window_id = win->id;
     m_window_count++;
     m_first_render = true;
 
-    nebula::drivers::Serial::write_string("[WM] Created GUI Window: ");
+    nebula::drivers::Serial::write_string("[WM] Created macOS Aqua Window: ");
     nebula::drivers::Serial::write_string(title);
     nebula::drivers::Serial::write_string("\n");
 
@@ -103,60 +108,110 @@ void WindowManager::draw_wallpaper() {
     }
 
     // Centered Desktop Brand Banner
-    Font::draw_string(w / 2 - 120, 60, "Nebula OS - Desktop GUI v1.0", 0x38BDF8);
+    Font::draw_string(w / 2 - 120, 60, "Nebula OS - macOS Aqua Desktop v1.1", 0x38BDF8);
     Font::draw_string(w / 2 - 140, 80, "Preemptive Multitasking & VFS Active", 0x94A3B8);
 }
 
 void WindowManager::draw_taskbar() {
-    size_t w = nebula::drivers::VBE::get_width();
-    size_t h = nebula::drivers::VBE::get_height();
-    size_t bar_h = 36;
-    size_t bar_y = h - bar_h;
-
-    // Dark Taskbar Panel
-    nebula::drivers::VBE::fill_rect(0, bar_y, w, bar_h, 0x020617);
-    nebula::drivers::VBE::fill_rect(0, bar_y, w, 2, 0x334155);
-
-    // Start Button
-    nebula::drivers::VBE::fill_rect(6, bar_y + 4, 80, bar_h - 8, 0x2563EB);
-    Font::draw_string(16, bar_y + 10, "NEBULA", 0xFFFFFF);
-
-    // Uptime Clock
-    uint32_t seconds = static_cast<uint32_t>(nebula::drivers::PIT::get_ticks() / 100);
-    uint32_t mins = seconds / 60;
-    uint32_t secs = seconds % 60;
-
-    char time_str[32];
-    time_str[0] = 'U'; time_str[1] = 'P'; time_str[2] = ':'; time_str[3] = ' ';
-    time_str[4] = '0' + (mins / 10);
-    time_str[5] = '0' + (mins % 10);
-    time_str[6] = ':';
-    time_str[7] = '0' + (secs / 10);
-    time_str[8] = '0' + (secs % 10);
-    time_str[9] = '\0';
-
-    Font::draw_string(w - 100, bar_y + 10, time_str, 0xFBBF24);
+    // Replaced by Top Global Menu Bar & Floating Dock
 }
 
 void WindowManager::process_mouse(int32_t mouse_x, int32_t mouse_y, bool left_down) {
-    // Handle Window Dragging
+    // Handle Window Dragging & Resizing
     for (size_t i = 0; i < m_window_count; i++) {
         Window* win = &m_windows[i];
+        if (win->is_minimized) continue;
+
         if (win->is_dragging) {
             if (left_down) {
                 win->x = mouse_x - win->drag_offset_x;
                 win->y = mouse_y - win->drag_offset_y;
+                if (win->y < 28) win->y = 28; // Don't drag above Top Menu Bar
                 m_first_render = true;
             } else {
                 win->is_dragging = false;
+            }
+        } else if (win->is_resizing) {
+            if (left_down) {
+                int32_t new_w = mouse_x - win->x;
+                int32_t new_h = mouse_y - win->y;
+                if (new_w < 180) new_w = 180;
+                if (new_h < 120) new_h = 120;
+                win->width = static_cast<uint32_t>(new_w);
+                win->height = static_cast<uint32_t>(new_h);
+                m_first_render = true;
+            } else {
+                win->is_resizing = false;
             }
         }
     }
 
     // Handle Mouse Click Down Event
     if (left_down && !m_prev_left_button) {
+        // Check Floating Dock Click
+        int dock_click = AquaEngine::check_dock_click(mouse_x, mouse_y);
+        if (dock_click >= 0) {
+            if (dock_click < static_cast<int>(m_window_count)) {
+                Window* win = &m_windows[dock_click];
+                win->is_minimized = false;
+                m_focused_window_id = win->id;
+                m_first_render = true;
+            }
+        }
+
         for (int i = static_cast<int>(m_window_count) - 1; i >= 0; i--) {
             Window* win = &m_windows[i];
+            if (win->is_minimized) continue;
+
+            // Check Traffic Light Buttons Hitbox (🔴 🟡 🟢)
+            if (mouse_y >= win->y + 4 && mouse_y <= win->y + 20) {
+                // 🔴 Red Close Button
+                if (mouse_x >= win->x + 8 && mouse_x <= win->x + 20) {
+                    win->is_minimized = true;
+                    m_first_render = true;
+                    break;
+                }
+                // 🟡 Yellow Minimize Button
+                else if (mouse_x >= win->x + 26 && mouse_x <= win->x + 38) {
+                    win->is_minimized = true;
+                    m_first_render = true;
+                    break;
+                }
+                // 🟢 Green Maximize Button
+                else if (mouse_x >= win->x + 44 && mouse_x <= win->x + 56) {
+                    if (!win->is_maximized) {
+                        win->saved_x = win->x;
+                        win->saved_y = win->y;
+                        win->saved_width = win->width;
+                        win->saved_height = win->height;
+                        win->x = 0;
+                        win->y = 28; // Under Top Bar
+                        win->width = 800;
+                        win->height = 600 - 28 - 66; // Above Dock
+                        win->is_maximized = true;
+                    } else {
+                        win->x = win->saved_x;
+                        win->y = win->saved_y;
+                        win->width = win->saved_width;
+                        win->height = win->saved_height;
+                        win->is_maximized = false;
+                    }
+                    m_first_render = true;
+                    break;
+                }
+            }
+
+            // Check Bottom-Right Resize Handle Corner ($16 \times 16$ px)
+            if (mouse_x >= win->x + static_cast<int32_t>(win->width) - 16 &&
+                mouse_x <= win->x + static_cast<int32_t>(win->width) &&
+                mouse_y >= win->y + static_cast<int32_t>(win->height) - 16 &&
+                mouse_y <= win->y + static_cast<int32_t>(win->height)) {
+
+                m_focused_window_id = win->id;
+                win->is_resizing = true;
+                m_first_render = true;
+                break;
+            }
 
             // Check Titlebar Click (Drag start or Focus)
             if (mouse_x >= win->x && mouse_x <= win->x + static_cast<int32_t>(win->width) &&
@@ -192,38 +247,47 @@ void WindowManager::render_all() {
         // 1. Draw Wallpaper
         draw_wallpaper();
 
-        // 2. Draw Windows
+        const char* active_app_title = "Desktop";
+
+        // 2. Draw Windows (Z-ordered)
         for (size_t i = 0; i < m_window_count; i++) {
             Window* win = &m_windows[i];
+            if (win->is_minimized) continue;
+
             bool is_focused = (win->id == static_cast<uint32_t>(m_focused_window_id));
+            if (is_focused) active_app_title = win->title;
 
-            // Window Shadow & Outer Border
-            nebula::drivers::VBE::fill_rect(win->x + 4, win->y + 4, win->width, win->height, 0x050B14);
-            nebula::drivers::VBE::fill_rect(win->x, win->y, win->width, win->height, is_focused ? 0x38BDF8 : 0x475569);
-            nebula::drivers::VBE::fill_rect(win->x + 2, win->y + 2, win->width - 4, win->height - 4, win->bg_color);
+            // Window Drop Shadow & Outer Glass Border (Rounded 10px)
+            nebula::drivers::VBE::fill_rounded_rect(win->x + 4, win->y + 4, win->width, win->height, 10, 0x050B14);
+            nebula::drivers::VBE::fill_rounded_rect(win->x - 1, win->y - 1, win->width + 2, win->height + 2, 11, is_focused ? 0x38BDF8 : 0x45475A);
+            nebula::drivers::VBE::fill_rounded_rect(win->x, win->y, win->width, win->height, 10, win->bg_color);
 
-            // Titlebar Panel
-            uint32_t titlebar_color = is_focused ? 0x1E293B : 0x334155;
-            nebula::drivers::VBE::fill_rect(win->x + 2, win->y + 2, win->width - 4, 24, titlebar_color);
+            // Dark macOS Aqua Titlebar Panel (#1E1E2E with rounded top corners)
+            uint32_t titlebar_color = is_focused ? 0x1E1E2E : 0x2A2B3D;
+            nebula::drivers::VBE::fill_rounded_rect(win->x + 1, win->y + 1, win->width - 2, 28, 8, titlebar_color);
+            nebula::drivers::VBE::fill_rect(win->x + 1, win->y + 20, win->width - 2, 8, titlebar_color);
+            nebula::drivers::VBE::fill_rect(win->x + 1, win->y + 28, win->width - 2, 1, 0x313244);
 
-            // Window Controls (Close X & Minimize - Buttons)
-            nebula::drivers::VBE::fill_rect(win->x + win->width - 22, win->y + 6, 16, 16, 0xEF4444);
-            Font::draw_char(win->x + win->width - 18, win->y + 6, 'X', 0xFFFFFF);
+            // macOS Traffic Light Window Controls (🔴 🟡 🟢)
+            AquaEngine::draw_traffic_lights(win->x, win->y + 2);
 
-            nebula::drivers::VBE::fill_rect(win->x + win->width - 42, win->y + 6, 16, 16, 0xF59E0B);
-            Font::draw_char(win->x + win->width - 38, win->y + 6, '-', 0xFFFFFF);
-
-            // Title Text
-            Font::draw_string(win->x + 10, win->y + 6, win->title, is_focused ? 0xF8FAFC : 0x94A3B8);
+            // Window Title Text (Centered nicely)
+            Font::draw_string(win->x + 72, win->y + 8, win->title, is_focused ? 0xF8FAFC : 0x94A3B8);
 
             // Window Client Area Callback
             if (win->render_func != nullptr) {
-                win->render_func(win->x + 10, win->y + 32, win->width - 20, win->height - 40);
+                win->render_func(win->x + 10, win->y + 32, win->width - 20, win->height - 42);
             }
+
+            // Corner Resize Grip Handle (::: at bottom-right)
+            int32_t rx = win->x + static_cast<int32_t>(win->width) - 12;
+            int32_t ry = win->y + static_cast<int32_t>(win->height) - 12;
+            Font::draw_string(rx, ry, "::", 0x6C7086);
         }
 
-        // 3. Draw Taskbar
-        draw_taskbar();
+        // 3. Draw Top Global Menu Bar & Floating Dock
+        AquaEngine::draw_top_menubar(active_app_title);
+        AquaEngine::draw_floating_dock();
 
         // 4. Save Full Cursor Backbuffer (24x24)
         for (int ry = 0; ry < 24; ry++) {
@@ -279,3 +343,4 @@ extern "C" {
         nebula::gui::WindowManager::render_all();
     }
 }
+

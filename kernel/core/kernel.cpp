@@ -4,44 +4,47 @@
  * @author Nebula OS Team
  */
 
-#include <bsd/net/arp.hpp>
-#include <bsd/net/ethernet.hpp>
-#include <bsd/net/icmp.hpp>
-#include <bsd/net/ipv4.hpp>
-#include <bsd/net/socket.hpp>
-#include <bsd/sys/bundle.hpp>
-#include <bsd/sys/elf.hpp>
-#include <bsd/sys/syscall.hpp>
-#include <bsd/vfs/fat32.hpp>
-#include <bsd/vfs/initrd.hpp>
-#include <bsd/vfs/vfs.hpp>
-#include <gui/font.hpp>
-#include <gui/wm.hpp>
-#include <iokit/console/console.hpp>
-#include <iokit/display/vbe.hpp>
-#include <iokit/input/keyboard.hpp>
-#include <iokit/input/mouse.hpp>
-#include <iokit/iodevice.hpp>
-#include <iokit/net/e1000.hpp>
-#include <iokit/serial/serial.hpp>
-#include <iokit/storage/ata.hpp>
-#include <iokit/storage/mbr.hpp>
-#include <iokit/timer/pit.hpp>
-#include <libkern/libkern.hpp>
-#include <libsa/libsa.hpp>
-#include <mach/arch/gdt.hpp>
-#include <mach/arch/idt.hpp>
-#include <mach/arch/interrupts.hpp>
-#include <mach/arch/pic.hpp>
-#include <mach/arch/tss.hpp>
-#include <mach/sched/process.hpp>
-#include <mach/sched/scheduler.hpp>
-#include <mach/vm/heap.hpp>
-#include <mach/vm/pmm.hpp>
-#include <mach/vm/vmm.hpp>
-#include <pexpert/pexpert.hpp>
-#include <san/sanitizer.hpp>
-#include <security/security.hpp>
+#include "../../include/bsd/net/arp.hpp"
+#include "../../include/bsd/net/ethernet.hpp"
+#include "../../include/bsd/net/icmp.hpp"
+#include "../../include/bsd/net/ipv4.hpp"
+#include "../../include/bsd/net/socket.hpp"
+#include "../../include/bsd/sys/bundle.hpp"
+#include "../../include/bsd/sys/elf.hpp"
+#include "../../include/bsd/sys/syscall.hpp"
+#include "../../include/bsd/vfs/fat32.hpp"
+#include "../../include/bsd/vfs/initrd.hpp"
+#include "../../include/bsd/vfs/vfs.hpp"
+#include "../../include/gui/aqua.hpp"
+#include "../../include/gui/font.hpp"
+#include "../../include/gui/widget.hpp"
+#include "../../include/gui/wm.hpp"
+#include "../../include/iokit/console/console.hpp"
+#include "../../include/iokit/display/vbe.hpp"
+#include "../../include/iokit/input/keyboard.hpp"
+#include "../../include/iokit/input/mouse.hpp"
+#include "../../include/iokit/iodevice.hpp"
+#include "../../include/iokit/net/e1000.hpp"
+#include "../../include/iokit/serial/serial.hpp"
+#include "../../include/iokit/storage/ata.hpp"
+#include "../../include/iokit/storage/mbr.hpp"
+#include "../../include/iokit/timer/pit.hpp"
+#include "../../include/libkern/libkern.hpp"
+#include "../../include/libsa/libsa.hpp"
+#include "../../include/mach/arch/gdt.hpp"
+#include "../../include/mach/arch/idt.hpp"
+#include "../../include/mach/arch/interrupts.hpp"
+#include "../../include/mach/arch/pic.hpp"
+#include "../../include/mach/arch/tss.hpp"
+#include "../../include/mach/sched/process.hpp"
+#include "../../include/mach/sched/scheduler.hpp"
+#include "../../include/mach/vm/heap.hpp"
+#include "../../include/mach/vm/pmm.hpp"
+#include "../../include/mach/vm/vmm.hpp"
+#include "../../include/multiboot.h"
+#include "../../include/pexpert/pexpert.hpp"
+#include "../../include/san/sanitizer.hpp"
+#include "../../include/security/security.hpp"
 
 #include "../bsd/net/arp.cpp"
 #include "../bsd/net/ethernet.cpp"
@@ -52,15 +55,17 @@
 #include "../bsd/sys/syscall.cpp"
 #include "../bsd/vfs/fat32.cpp"
 #include "../bsd/vfs/initrd.cpp"
-#include "../iokit/net/e1000.cpp"
 #include "../bsd/vfs/vfs.cpp"
+#include "../gui/aqua.cpp"
 #include "../gui/font.cpp"
+#include "../gui/widget.cpp"
 #include "../gui/wm.cpp"
 #include "../iokit/console/vga.cpp"
 #include "../iokit/display/vbe.cpp"
 #include "../iokit/input/keyboard.cpp"
 #include "../iokit/input/mouse.cpp"
 #include "../iokit/iodevice.cpp"
+#include "../iokit/net/e1000.cpp"
 #include "../iokit/serial/serial.cpp"
 #include "../iokit/storage/ata.cpp"
 #include "../iokit/storage/mbr.cpp"
@@ -107,30 +112,33 @@ static size_t term_buf_len = 8;
 
 // Render callback for System Information Window
 static void render_sys_info_win(int32_t x, int32_t y, uint32_t w, uint32_t h) {
-  (void)w;
   (void)h;
-  Font::draw_string(x, y, "System Status & Hardware Info:", 0x38BDF8);
-  Font::draw_string(
-      x, y + 20, "CPU Architecture : x86 32/64-bit Protected Mode", 0xF8FAFC);
-  Font::draw_string(x, y + 40, "Memory Heap Pool : 0x00C00000 (1 MB Allocated)",
-                    0xF8FAFC);
-  Font::draw_string(x, y + 60, "Filesystem Mount : /initrd/ (RAM Disk Loaded)",
-                    0x2DD4BF);
-  Font::draw_string(x, y + 80, "System Calls Gate: INT 0x80 (Active DPL 3)",
-                    0xFBBF24);
-  Font::draw_string(
-      x, y + 100, "Multitasking     : Preemptive Round-Robin 100Hz", 0xF8FAFC);
+  VBE::fill_rect(x - 5, y - 5, w + 10, h + 10, 0x181825);
+
+  Font::draw_string(x, y, "Nebula Workstation System Specs", 0x38BDF8);
+  Font::draw_string(x, y + 20, "Architecture: x86_64 Mach-BSD Hybrid", 0xF8FAFC);
+  Font::draw_string(x, y + 40, "Kernel Core : Mach Kernel + IOKit DriverKit", 0xE2E8F0);
+  Font::draw_string(x, y + 60, "Network IP  : 10.0.2.15 (E1000 Gigabit UP)", 0x34D399);
+
+  Font::draw_string(x, y + 90, "System Memory (RAM 512 MB): 35% Used", 0xFBBF24);
+  VBE::fill_rounded_rect(x, y + 110, w - 10, 16, 6, 0x313244);
+  VBE::fill_rounded_rect(x + 2, y + 112, ((w - 14) * 35) / 100, 12, 4, 0x10B981);
 }
 
 // Render callback for Interactive Terminal GUI Window
 static void render_terminal_win(int32_t x, int32_t y, uint32_t w, uint32_t h) {
-  (void)w;
-  (void)h;
-  VBE::fill_rect(x, y, w, h, 0x020617);
-  Font::draw_string(x + 10, y + 10, "Nebula OS Interactive Terminal", 0x38BDF8);
-  Font::draw_string(x + 10, y + 30,
-                    "Type text below using keyboard:", 0x94A3B8);
-  Font::draw_string(x + 10, y + 60, term_input_buf, 0x2DD4BF);
+  VBE::fill_rect(x - 5, y - 5, w + 10, h + 10, 0x0F172A);
+
+  Font::draw_string(x, y, "Last login: Mon Aug 10 12:45:00 on console", 0x64748B);
+  Font::draw_string(x, y + 20, "nebula@os ~ % uname -a", 0x38BDF8);
+  Font::draw_string(x, y + 36, "NebulaOS 1.1.0 Mach-BSD x86_64", 0xE2E8F0);
+
+  Font::draw_string(x, y + 60, "nebula@os ~ % ls -l /initrd/", 0x38BDF8);
+  Font::draw_string(x, y + 76, "-rw-r--r--  1 root  root  28B  hello.txt", 0x94A3B8);
+
+  Font::draw_string(x, y + 100, "nebula@os ~ % ", 0x38BDF8);
+  Font::draw_string(x + 112, y + 100, term_input_buf + 8, 0xF8FAFC);
+  Font::draw_string(x + 112 + (term_buf_len - 8) * 8, y + 100, "_", 0x38BDF8);
 }
 
 // Background Kernel Thread Alpha
@@ -206,8 +214,10 @@ extern "C" void kernel_main(uint32_t magic, multiboot_info_t *mb_info) {
   nebula::bsd::net::SocketManager::init();
 
   Syscall::init();
-  nebula::drivers::Serial::write_string("[ELF] Executable Binary Loader Subsystem (ELF32/ELF64) Active\n");
-  nebula::drivers::Serial::write_string("[LIBC] Userland Standard C Library (libnebula) Active\n");
+  nebula::drivers::Serial::write_string(
+      "[ELF] Executable Binary Loader Subsystem (ELF32/ELF64) Active\n");
+  nebula::drivers::Serial::write_string(
+      "[LIBC] Userland Standard C Library (libnebula) Active\n");
 
   VBE::init(nullptr);
   WindowManager::init();

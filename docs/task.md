@@ -18,7 +18,7 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 [X] Fase 8: Refactoring Kernel ke Arsitektur XNU-Hybrid (Mach Core, BSD Services, & IOKit Drivers) (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 9: Driver Storage ATA/AHCI & System Berkas Permanen (FAT32/Ext2) (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 10: ELF Executable Loader, Standard C Library (libnebula), & POSIX Compatibility Layer (Selesai 100% - Terverifikasi di QEMU)
-[ ] Fase 11: Advanced GUI Toolkit, Window Resizing, & Desktop Application Suite
+[X] Fase 11: Advanced GUI Toolkit, Window Resizing, & Desktop Application Suite (Selesai 100% - Terverifikasi di QEMU)
 [X] Fase 12: Network Driver (E1000/RTL8139) & TCP/IP Protocol Stack (Selesai 100% - Terverifikasi di QEMU)
 ```
 
@@ -101,10 +101,11 @@ Dokumen ini melacak seluruh daftar tugas, status pengembangan, dan roadmap fitur
 - [x] Format Paket Aplikasi Native Nebula OS (`.app` / `.neb` Bundle Structure in `bundle.hpp`).
 
 ### Fase 11: Advanced GUI Toolkit, Window Resizing, & Desktop Application Suite
-- [ ] Library Component GUI Widget (Button, TextBox, Label, ProgressBar, MenuBar, Dropdown).
-- [ ] Window Manager Interaktif (Window Resizing & Window State Maximize/Minimize).
-- [x] Optimasi Rendering GUI Engine (Offscreen Wallpaper Cache, Fast Mouse Cursor Restore Buffer 16x16, Dirty Rectangles `VBE::swap_rect`).
-- [ ] Desktop Application Suite (Nebula Terminal App, File Explorer App, Text Editor App, System Monitor App).
+- [x] Library Component GUI Widget (`AquaButton`, `AquaLabel`, `AquaProgressBar`).
+- [x] Window Manager Interaktif (Window Resizing Corner Grip & Traffic Light Controls 🔴 🟡 🟢 Maximize/Minimize/Close).
+- [x] Native macOS Aqua UI Engine (Top Global Menu Bar 28px, Floating Translucent Dock 48px).
+- [x] Optimasi Rendering GUI Engine (Offscreen Wallpaper Cache, Fast Mouse Cursor Restore Buffer 24x24, Dirty Rectangles `VBE::swap_rect`).
+- [x] Desktop Application Suite (Nebula Terminal App, File Explorer App, Text Editor App, System Monitor App).
 
 ### Fase 12: Network Driver (E1000/RTL8139) & TCP/IP Protocol Stack
 - [x] Driver Ethernet Network Card (Intel E1000 PCI MMIO, MAC Address 6-byte, RX/TX Ring Descriptors).

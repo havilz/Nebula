@@ -4,10 +4,12 @@
  * @author Nebula OS Team
  */
 
-#include <iokit/display/vbe.hpp>
-#include <iokit/serial/serial.hpp>
-#include <mach/vm/heap.hpp>
-#include <libkern/io.hpp>
+#include <stddef.h>
+#include <stdint.h>
+#include "../../../include/iokit/display/vbe.hpp"
+#include "../../../include/iokit/serial/serial.hpp"
+#include "../../../include/mach/vm/heap.hpp"
+#include "../../../include/libkern/io.hpp"
 
 namespace nebula {
 namespace drivers {
@@ -110,6 +112,44 @@ void VBE::fill_rect(size_t x, size_t y, size_t width, size_t height, uint32_t co
             m_backbuffer[j * m_width + i] = color;
         }
     }
+}
+
+void VBE::fill_circle(int32_t cx, int32_t cy, int32_t radius, uint32_t color) {
+    if (!m_initialized) return;
+    for (int32_t dy = -radius; dy <= radius; dy++) {
+        for (int32_t dx = -radius; dx <= radius; dx++) {
+            if (dx * dx + dy * dy <= radius * radius) {
+                int32_t px = cx + dx;
+                int32_t py = cy + dy;
+                if (px >= 0 && static_cast<size_t>(px) < m_width && py >= 0 && static_cast<size_t>(py) < m_height) {
+                    m_backbuffer[py * m_width + px] = color;
+                }
+            }
+        }
+    }
+}
+
+void VBE::fill_rounded_rect(int32_t x, int32_t y, uint32_t width, uint32_t height, uint32_t radius, uint32_t color) {
+    if (!m_initialized) return;
+
+    int32_t w = static_cast<int32_t>(width);
+    int32_t h = static_cast<int32_t>(height);
+    int32_t r = static_cast<int32_t>(radius);
+
+    if (r > w / 2) r = w / 2;
+    if (r > h / 2) r = h / 2;
+
+    // Center body
+    fill_rect(x + r, y, w - 2 * r, h, color);
+    // Left & Right columns
+    fill_rect(x, y + r, r, h - 2 * r, color);
+    fill_rect(x + w - r, y + r, r, h - 2 * r, color);
+
+    // 4 Corner Circles
+    fill_circle(x + r, y + r, r, color);
+    fill_circle(x + w - r - 1, y + r, r, color);
+    fill_circle(x + r, y + h - r - 1, r, color);
+    fill_circle(x + w - r - 1, y + h - r - 1, r, color);
 }
 
 void VBE::clear(uint32_t color) {
