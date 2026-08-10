@@ -2,6 +2,28 @@
 
 Dokumen ini mencatat seluruh riwayat perubahan, keputusan arsitektur teknis, diagnosa masalah, dan solusi yang diterapkan pada proyek **Nebula OS**. Dokumen ini diperbarui secara berkala setiap kali suatu Fase / Task selesai diimplementasikan.
 
+## [Task 11-B] - Perbaikan FAT32 Directory Entry Lookup, Multi-Cluster Traversal, IPv4 Protocol Demuxing, & BSD Socket Table
+
+### Ringkasan Tujuan
+Mengimplementasikan perbaikan fitur berdasarkan laporan audit `audir.md`: FAT32 Short Directory Entry 8.3 Lookup (`finddir`), FAT Cluster Chain Traversal untuk berkas >4 KiB (`get_next_cluster`), IPv4 Demultiplexing ke handler ICMP (`handle_ip`), serta tabel *Socket Control Block* `s_sockets[16]`.
+
+---
+
+### Perubahan & Komponen Utama yang Dibuat
+
+#### 1. FAT32 Directory Entry Parser (`finddir`) & Cluster Chain Traversal (`get_next_cluster`)
+- **`FAT32::finddir(vnode_t* node, const char* name)`**: Mengonversi nama pencarian ke format 11-byte space-padded 8.3 Short Filename, memindai entri direktori 32-byte pada klaster direktori, dan mengalokasikan `vnode_t` secara dinamis dari heap.
+- **`FAT32::get_next_cluster(uint32_t current_cluster)`**: Membaca entri 32-bit dari tabel FAT pada `s_fat_lba` untuk mendapatkan indeks klaster berikutnya.
+- **Multi-cluster `FAT32::read()`**: Iterasi pembacaan berkas antar-klaster sehingga berkas berukuran besar dapat dibaca tanpa terpotong.
+
+#### 2. IPv4 Packet Protocol Demuxing (`IPv4::handle_ip`)
+- **Demultiplexing Header IP**: Membaca field `protocol` pada header IP dan mendistribusikan payload secara presisi (`IPPROTO_ICMP` ke `ICMP::handle_icmp`).
+
+#### 3. BSD Socket Descriptor Management (`SocketManager`)
+- **Tabel Descriptor `s_sockets[16]`**: Alokasi *descriptor slot* $3, 4, 5...$ pada `sys_socket()` dan penyimpanan binding alamat IP/Port pada `sys_bind()`.
+
+---
+
 ## [Task 11-Optimization] - Optimasi Rendering GUI Engine, Offscreen Wallpaper Cache, & Smooth Mouse Cursor
 
 ### Ringkasan Tujuan

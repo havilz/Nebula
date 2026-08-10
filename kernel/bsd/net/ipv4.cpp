@@ -1,5 +1,8 @@
-#include <bsd/net/ipv4.hpp>
-#include <iokit/serial/serial.hpp>
+#include <stddef.h>
+#include <stdint.h>
+#include "../../../include/bsd/net/ipv4.hpp"
+#include "../../../include/bsd/net/icmp.hpp"
+#include "../../../include/iokit/serial/serial.hpp"
 
 namespace nebula {
 namespace bsd {
@@ -30,7 +33,21 @@ uint16_t IPv4::checksum(const void* vdata, size_t length) {
 
 void IPv4::handle_ip(const uint8_t* packet, uint16_t len) {
     if (packet == nullptr || len < sizeof(ipv4_header_t)) return;
-    nebula::drivers::Serial::write_string("[IPv4] Incoming IPv4 Packet Received\n");
+
+    const ipv4_header_t* ip = (const ipv4_header_t*)packet;
+    uint16_t header_len = (ip->version_ihl & 0x0F) * 4;
+    if (len < header_len) return;
+
+    uint16_t payload_len = len - header_len;
+    const uint8_t* payload = packet + header_len;
+
+    nebula::drivers::Serial::write_string("[IPv4] Incoming Packet (Protocol: ");
+    nebula::drivers::Serial::write_hex32(ip->protocol);
+    nebula::drivers::Serial::write_string(")\n");
+
+    if (ip->protocol == 1) { // ICMP
+        ICMP::handle_icmp(payload, payload_len);
+    }
 }
 
 } // namespace net

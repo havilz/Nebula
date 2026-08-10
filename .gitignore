@@ -11,6 +11,7 @@ kernel_debug.log
 docs/CHANGELOG.md
 docs/RULES.md
 docs/task.md
+docs/audit.md
 
 # IDE & Editor Settings
 .vscode/

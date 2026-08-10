@@ -19,6 +19,15 @@ struct sockaddr_in {
     char     sin_zero[8];
 };
 
+struct bsd_socket_t {
+    bool in_use;
+    int domain;
+    int type;
+    int protocol;
+    uint16_t local_port;
+    uint32_t local_ip;
+};
+
 class SocketManager {
 public:
     static void init();
