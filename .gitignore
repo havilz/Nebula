@@ -7,8 +7,10 @@ build_debug/
 *.log
 kernel_debug.log
 
-# Audit & Temporary Files
-audir.md
+# Ignored Documentation Files
+docs/CHANGELOG.md
+docs/RULES.md
+docs/task.md
 
 # IDE & Editor Settings
 .vscode/
