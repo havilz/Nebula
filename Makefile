@@ -1,4 +1,4 @@
-# Makefile untuk Nebula OS - Phase 3 (Physical & Virtual Memory Management)
+# Makefile untuk Nebula OS - XNU-Hybrid Architecture
 # Dikompilasi menggunakan MSYS2 UCRT64 toolchain & LLD Linker di Windows
 
 CC      = g++
@@ -7,8 +7,8 @@ LD      = ld.lld
 OBJCOPY = objcopy
 QEMU    = qemu-system-i386
 
-BUILD_DIR = build
-BOOT_DIR  = boot/x86_64
+BUILD_DIR  = build
+BOOT_DIR   = boot/x86_64
 KERNEL_DIR = kernel
 
 CFLAGS   = -m32 -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-rtti \
@@ -42,7 +42,7 @@ $(BUILD_DIR):
 $(BUILD_DIR)/boot.o: $(BOOT_DIR)/boot.asm | $(BUILD_DIR)
 	$(ASM) $(ASMFLAGS) $< -o $@
 
-$(BUILD_DIR)/isr.o: $(KERNEL_DIR)/arch/x86_64/interrupts/isr.asm | $(BUILD_DIR)
+$(BUILD_DIR)/isr.o: $(KERNEL_DIR)/mach/arch/isr.asm | $(BUILD_DIR)
 	$(ASM) $(ASMFLAGS) $< -o $@
 
 $(BUILD_DIR)/kernel.o: $(KERNEL_DIR)/core/kernel.cpp | $(BUILD_DIR)
@@ -62,7 +62,7 @@ $(DEBUG_DIR):
 $(DEBUG_DIR)/boot.o: $(BOOT_DIR)/boot.asm | $(DEBUG_DIR)
 	$(ASM) $(ASMFLAGS_DEBUG) $< -o $@
 
-$(DEBUG_DIR)/isr.o: $(KERNEL_DIR)/arch/x86_64/interrupts/isr.asm | $(DEBUG_DIR)
+$(DEBUG_DIR)/isr.o: $(KERNEL_DIR)/mach/arch/isr.asm | $(DEBUG_DIR)
 	$(ASM) $(ASMFLAGS_DEBUG) $< -o $@
 
 $(DEBUG_DIR)/kernel.o: $(KERNEL_DIR)/core/kernel.cpp | $(DEBUG_DIR)

@@ -4,8 +4,8 @@
  * @author Nebula OS Team
  */
 
-#include "../../include/kernel/gui/font.hpp"
-#include "../../include/kernel/drivers/vbe.hpp"
+#include <gui/font.hpp>
+#include <iokit/display/vbe.hpp>
 
 namespace nebula {
 namespace gui {

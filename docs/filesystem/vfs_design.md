@@ -1,36 +1,27 @@
-# Spesifikasi Desain Virtual File System (VFS)
+# Spesifikasi Virtual File System (VFS) Nebula OS (BSD VFS Layer)
 
-## 1. Arsitektur VFS
-Virtual File System (VFS) mengabstraksikan berbagai jenis media penyimpanan dan sistem berkas di bawah satu antarmuka terpadu.
+## 1. Gambaran Umum
+Virtual File System (VFS) Nebula OS diimplementasikan pada BSD OS Services Layer (`include/bsd/vfs/` & `kernel/bsd/vfs/`) untuk menyediakan antarmuka terpadu operasi file bagi aplikasi Ring 3 maupun subsistem kernel Ring 0.
 
-```
-                  +--------------------------+
-                  | System Calls (Ring 3)    |
-                  | open, read, write, close |
-                  +--------------------------+
-                               |
-                               v
-                  +--------------------------+
-                  | VFS Abstraction Layer    |
-                  +--------------------------+
-                               |
-      +------------------------+------------------------+
-      |                        |                        |
-      v                        v                        v
-+-----------+            +-----------+            +-----------+
-| Initrd FS |            | RAMFS     |            | FAT32 FS  |
-+-----------+            +-----------+            +-----------+
+---
+
+## 2. Struktur Abstraksi VNode (`vfs.hpp`)
+
+Setiap file dan direktori diwakili oleh struktur `vnode_t`:
+
+```cpp
+struct vnode_t {
+    char name[32];
+    uint32_t type;       // VNODE_TYPE_FILE atau VNODE_TYPE_DIR
+    uint32_t size;       // Ukuran file dalam bytes
+    vfs_ops_t* ops;      // Pointer ke tabel operasi file konkrit
+    void* internal_data; // Pointer internal ke data driver (Initrd RAM Disk)
+};
 ```
 
 ---
 
-## 2. Abstraksi Utama
+## 3. Modul Initrd RAM Disk (`initrd.hpp` & `initrd.cpp`)
 
-1. **`VNode` (Virtual Node)**:
-   Mewakili sebuah file atau direktori dalam memori RAM kernel. Menyimpan pointer ke operasi file (`read`, `write`, `readdir`, `finddir`).
-
-2. **`MountPoint`**:
-   Menghubungkan root dari sebuah sistem berkas spesifik ke suatu jalur direktori dalam pohon VFS (misalnya memetakan RAMFS ke `/`).
-
-3. **`FileDescriptor`**:
-   Struktur data per-proses yang mencatat posisi offset pembacaan/penulisan file saat ini (*file offset*) dan mode akses (ReadOnly, WriteOnly, ReadWrite).
+* Driver RAM Disk memuat file dari memori bootloader saat inisialisasi awal.
+* Terpasang di `/initrd/` dan mendukung fungsi `open`, `read`, dan `readdir`.

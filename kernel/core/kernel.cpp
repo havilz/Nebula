@@ -1,53 +1,85 @@
 /**
  * @file kernel.cpp
- * @brief Kernel entry point for Nebula OS - Phase 7 (VBE Framebuffer & GUI
- * Window Manager)
+ * @brief Kernel entry point for Nebula OS - XNU-Hybrid Architecture
  * @author Nebula OS Team
  */
 
-#include "../../include/kernel/arch/x86_64/gdt.hpp"
-#include "../../include/kernel/arch/x86_64/idt.hpp"
-#include "../../include/kernel/arch/x86_64/interrupts.hpp"
-#include "../../include/kernel/arch/x86_64/pic.hpp"
-#include "../../include/kernel/arch/x86_64/tss.hpp"
-#include "../../include/kernel/drivers/console.hpp"
-#include "../../include/kernel/drivers/keyboard.hpp"
-#include "../../include/kernel/drivers/mouse.hpp"
-#include "../../include/kernel/drivers/pit.hpp"
-#include "../../include/kernel/drivers/serial.hpp"
-#include "../../include/kernel/drivers/vbe.hpp"
-#include "../../include/kernel/fs/initrd.hpp"
-#include "../../include/kernel/fs/vfs.hpp"
-#include "../../include/kernel/gui/font.hpp"
-#include "../../include/kernel/gui/wm.hpp"
-#include "../../include/kernel/memory/heap.hpp"
-#include "../../include/kernel/memory/pmm.hpp"
-#include "../../include/kernel/memory/vmm.hpp"
-#include "../../include/kernel/process/process.hpp"
-#include "../../include/kernel/scheduler/scheduler.hpp"
-#include "../../include/kernel/syscall/syscall.hpp"
+#include <bsd/net/arp.hpp>
+#include <bsd/net/ethernet.hpp>
+#include <bsd/net/icmp.hpp>
+#include <bsd/net/ipv4.hpp>
+#include <bsd/net/socket.hpp>
+#include <bsd/sys/bundle.hpp>
+#include <bsd/sys/elf.hpp>
+#include <bsd/sys/syscall.hpp>
+#include <bsd/vfs/fat32.hpp>
+#include <bsd/vfs/initrd.hpp>
+#include <bsd/vfs/vfs.hpp>
+#include <gui/font.hpp>
+#include <gui/wm.hpp>
+#include <iokit/console/console.hpp>
+#include <iokit/display/vbe.hpp>
+#include <iokit/input/keyboard.hpp>
+#include <iokit/input/mouse.hpp>
+#include <iokit/iodevice.hpp>
+#include <iokit/net/e1000.hpp>
+#include <iokit/serial/serial.hpp>
+#include <iokit/storage/ata.hpp>
+#include <iokit/storage/mbr.hpp>
+#include <iokit/timer/pit.hpp>
+#include <libkern/libkern.hpp>
+#include <libsa/libsa.hpp>
+#include <mach/arch/gdt.hpp>
+#include <mach/arch/idt.hpp>
+#include <mach/arch/interrupts.hpp>
+#include <mach/arch/pic.hpp>
+#include <mach/arch/tss.hpp>
+#include <mach/sched/process.hpp>
+#include <mach/sched/scheduler.hpp>
+#include <mach/vm/heap.hpp>
+#include <mach/vm/pmm.hpp>
+#include <mach/vm/vmm.hpp>
+#include <pexpert/pexpert.hpp>
+#include <san/sanitizer.hpp>
+#include <security/security.hpp>
 
-#include "../arch/x86_64/gdt/gdt.cpp"
-#include "../arch/x86_64/idt/idt.cpp"
-#include "../arch/x86_64/interrupts/interrupts.cpp"
-#include "../arch/x86_64/interrupts/pic.cpp"
-#include "../arch/x86_64/tss/tss.cpp"
-#include "../drivers/console/vga.cpp"
-#include "../drivers/gui/vbe.cpp"
-#include "../drivers/input/keyboard.cpp"
-#include "../drivers/input/mouse.cpp"
-#include "../drivers/serial/serial.cpp"
-#include "../drivers/timer/pit.cpp"
-#include "../fs/initrd.cpp"
-#include "../fs/vfs.cpp"
+#include "../bsd/net/arp.cpp"
+#include "../bsd/net/ethernet.cpp"
+#include "../bsd/net/icmp.cpp"
+#include "../bsd/net/ipv4.cpp"
+#include "../bsd/net/socket.cpp"
+#include "../bsd/sys/elf.cpp"
+#include "../bsd/sys/syscall.cpp"
+#include "../bsd/vfs/fat32.cpp"
+#include "../bsd/vfs/initrd.cpp"
+#include "../iokit/net/e1000.cpp"
+#include "../bsd/vfs/vfs.cpp"
 #include "../gui/font.cpp"
 #include "../gui/wm.cpp"
-#include "../memory/heap.cpp"
-#include "../memory/kheap.cpp"
-#include "../memory/pmm.cpp"
-#include "../memory/vmm.cpp"
-#include "../scheduler/scheduler.cpp"
-#include "../syscall/syscall.cpp"
+#include "../iokit/console/vga.cpp"
+#include "../iokit/display/vbe.cpp"
+#include "../iokit/input/keyboard.cpp"
+#include "../iokit/input/mouse.cpp"
+#include "../iokit/iodevice.cpp"
+#include "../iokit/serial/serial.cpp"
+#include "../iokit/storage/ata.cpp"
+#include "../iokit/storage/mbr.cpp"
+#include "../iokit/timer/pit.cpp"
+#include "../libkern/libkern.cpp"
+#include "../libsa/libsa.cpp"
+#include "../mach/arch/gdt.cpp"
+#include "../mach/arch/idt.cpp"
+#include "../mach/arch/interrupts.cpp"
+#include "../mach/arch/pic.cpp"
+#include "../mach/arch/tss.cpp"
+#include "../mach/sched/scheduler.cpp"
+#include "../mach/vm/heap.cpp"
+#include "../mach/vm/kheap.cpp"
+#include "../mach/vm/pmm.cpp"
+#include "../mach/vm/vmm.cpp"
+#include "../pexpert/pexpert.cpp"
+#include "../san/sanitizer.cpp"
+#include "../security/security.cpp"
 
 using nebula::arch::x86_64::GDT;
 using nebula::arch::x86_64::IDT;
@@ -129,7 +161,14 @@ static void kernel_thread_beta() {
 extern "C" void kernel_main(uint32_t magic, multiboot_info_t *mb_info) {
   (void)magic;
   Serial::init();
-  Serial::write_string("[KERNEL] Entered kernel_main() Phase 7 VBE GUI\n");
+  Serial::write_string(
+      "[KERNEL] Entered kernel_main() XNU-Hybrid Architecture 1-to-1\n");
+
+  nebula::pexpert::init();
+  nebula::libkern::init();
+  nebula::libsa::init();
+  nebula::security::init();
+  nebula::san::init();
 
   GDT::init();
   IDT::init();
@@ -149,7 +188,26 @@ extern "C" void kernel_main(uint32_t magic, multiboot_info_t *mb_info) {
   VFS::init();
   vnode_t *root_node = Initrd::init(0);
   (void)root_node;
+
+  static nebula::drivers::ATADriver ata_drive;
+  ata_drive.init();
+  if (ata_drive.start()) {
+    uint32_t fat32_lba = 0;
+    nebula::drivers::MBRParser::parse(&ata_drive, &fat32_lba);
+    nebula::fs::FAT32::mount(&ata_drive, fat32_lba);
+  }
+
+  static nebula::drivers::E1000Driver e1000_nic;
+  e1000_nic.init();
+  e1000_nic.start();
+
+  nebula::bsd::net::IPv4::init();
+  nebula::bsd::net::ARP::init();
+  nebula::bsd::net::SocketManager::init();
+
   Syscall::init();
+  nebula::drivers::Serial::write_string("[ELF] Executable Binary Loader Subsystem (ELF32/ELF64) Active\n");
+  nebula::drivers::Serial::write_string("[LIBC] Userland Standard C Library (libnebula) Active\n");
 
   VBE::init(nullptr);
   WindowManager::init();
